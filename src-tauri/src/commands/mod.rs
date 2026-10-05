@@ -1,6 +1,7 @@
 pub mod document;
 pub mod file;
 pub mod history;
+pub mod planning;
 pub mod project;
 pub mod reconciliation;
 pub mod recovery;
@@ -10,6 +11,7 @@ pub mod watcher;
 pub use document::*;
 pub use file::*;
 pub use history::*;
+pub use planning::*;
 pub use project::*;
 pub use reconciliation::*;
 pub use recovery::*;

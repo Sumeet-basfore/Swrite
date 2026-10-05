@@ -3,6 +3,7 @@ pub mod document;
 pub mod error;
 pub mod filesystem;
 pub mod history;
+pub mod planning;
 pub mod project;
 pub mod recovery;
 pub mod search;
@@ -41,6 +42,11 @@ pub fn run() {
             commands::document_write,
             commands::document_parse,
             commands::document_serialize,
+            commands::timeline_load,
+            commands::timeline_save,
+            commands::outline_meta_load,
+            commands::outline_meta_save,
+            commands::outline_meta_update_item,
             commands::recovery_save,
             commands::recovery_clear,
             commands::recovery_list,

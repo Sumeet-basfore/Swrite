@@ -62,6 +62,35 @@ export interface RecentDocumentEntry {
   last_opened_at: string;
 }
 
+// Planning Studio Types
+export interface TimelineEvent {
+  id: string;
+  title: string;
+  temporal_position: string;
+  narrative_marker?: string | null;
+  linked_scene?: string | null;
+  description: string;
+  notes: string;
+  order_index: number;
+}
+
+export interface TimelineData {
+  events: TimelineEvent[];
+}
+
+export interface ItemPlanningMeta {
+  relative_path: string;
+  title?: string | null;
+  summary?: string | null;
+  notes?: string | null;
+  status?: 'Idea' | 'Planned' | 'Drafted' | 'Revising' | 'Complete' | null;
+  custom_order?: number | null;
+}
+
+export interface OutlinePlanningData {
+  items: ItemPlanningMeta[];
+}
+
 export interface RecoveryDraft {
   document_id: string;
   relative_path: string;

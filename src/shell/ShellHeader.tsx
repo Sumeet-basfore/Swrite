@@ -8,6 +8,8 @@ import {
   ChevronRight,
   Maximize2,
   Sliders,
+  PenLine,
+  Compass,
 } from 'lucide-react';
 
 export interface ShellHeaderProps {
@@ -15,6 +17,8 @@ export interface ShellHeaderProps {
   activePath: string | null;
   sidebarCollapsed: boolean;
   focusMode: boolean;
+  studioMode: 'write' | 'plan';
+  onChangeStudioMode: (mode: 'write' | 'plan') => void;
   onToggleSidebar: () => void;
   onOpenSearch: () => void;
   onToggleRecents: () => void;
@@ -28,6 +32,8 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   activePath,
   sidebarCollapsed,
   focusMode,
+  studioMode,
+  onChangeStudioMode,
   onToggleSidebar,
   onOpenSearch,
   onToggleRecents,
@@ -75,6 +81,27 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
         </div>
 
         {renderBreadcrumbs()}
+      </div>
+
+      <div className="header-center">
+        <div className="studio-mode-switcher">
+          <button
+            className={`mode-tab-btn ${studioMode === 'write' ? 'active' : ''}`}
+            onClick={() => onChangeStudioMode('write')}
+            title="Write Studio (Ctrl+1)"
+          >
+            <PenLine size={13} />
+            <span>Write</span>
+          </button>
+          <button
+            className={`mode-tab-btn ${studioMode === 'plan' ? 'active' : ''}`}
+            onClick={() => onChangeStudioMode('plan')}
+            title="Planning Studio (Ctrl+2)"
+          >
+            <Compass size={13} />
+            <span>Plan</span>
+          </button>
+        </div>
       </div>
 
       <div className="header-right">

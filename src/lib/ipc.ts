@@ -11,6 +11,9 @@ import {
   RecoveryDraft,
   SearchResult,
   SnapshotMetadata,
+  TimelineData,
+  OutlinePlanningData,
+  ItemPlanningMeta,
 } from '../types/ipc';
 
 export const SwriteIpc = {
@@ -78,6 +81,22 @@ export const SwriteIpc = {
 
   fileMetadata: (relativePath: string) =>
     invoke<FileMetadataInfo>('file_metadata', { relativePath }),
+
+  // Planning operations
+  timelineLoad: () =>
+    invoke<TimelineData>('timeline_load'),
+
+  timelineSave: (timeline: TimelineData) =>
+    invoke<void>('timeline_save', { timeline }),
+
+  outlineMetaLoad: () =>
+    invoke<OutlinePlanningData>('outline_meta_load'),
+
+  outlineMetaSave: (outline: OutlinePlanningData) =>
+    invoke<void>('outline_meta_save', { outline }),
+
+  outlineMetaUpdateItem: (item: ItemPlanningMeta) =>
+    invoke<void>('outline_meta_update_item', { item }),
 
   // Document operations
   documentRead: (relativePath: string, documentId?: string) =>

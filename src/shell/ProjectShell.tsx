@@ -8,6 +8,7 @@ import { RecentFilesMenu } from './RecentFilesMenu';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { NewDocumentDialog } from './NewDocumentDialog';
 import { EditorCanvas } from '../editor';
+import { PlanningStudio } from '../planning';
 import { ContextMenuState, TreeNode } from './types';
 import './shell.css';
 
@@ -40,6 +41,7 @@ export const ProjectShell: React.FC = () => {
     openSearchResult,
   } = useProjectState();
 
+  const [studioMode, setStudioMode] = useState<'write' | 'plan'>('write');
   const [focusMode, setFocusMode] = useState(false);
   const [showDevDrawer, setShowDevDrawer] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -71,6 +73,20 @@ export const ProjectShell: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
+
+      // Mod+1: Write Studio
+      if (isMod && !e.shiftKey && key === '1') {
+        e.preventDefault();
+        setStudioMode('write');
+        return;
+      }
+
+      // Mod+2: Planning Studio
+      if (isMod && !e.shiftKey && key === '2') {
+        e.preventDefault();
+        setStudioMode('plan');
+        return;
+      }
 
       // Mod+P or Mod+Shift+O: Open Search
       if ((isMod && key === 'p') || (isMod && e.shiftKey && key === 'o')) {
@@ -122,6 +138,8 @@ export const ProjectShell: React.FC = () => {
         activePath={selectedFile}
         sidebarCollapsed={sidebarCollapsed}
         focusMode={focusMode}
+        studioMode={studioMode}
+        onChangeStudioMode={setStudioMode}
         onToggleSidebar={toggleSidebar}
         onOpenSearch={() => setSearchModalOpen(true)}
         onToggleRecents={() => setRecentsMenuOpen((prev) => !prev)}
@@ -139,7 +157,10 @@ export const ProjectShell: React.FC = () => {
             selectedFile={selectedFile}
             expandedFolders={expandedFolders}
             collapsed={sidebarCollapsed}
-            onOpenFile={openDocument}
+            onOpenFile={(path) => {
+              setStudioMode('write');
+              openDocument(path);
+            }}
             onToggleFolder={toggleFolder}
             onRefreshFiles={refreshFiles}
             onNewChapter={createNewChapter}
@@ -155,9 +176,19 @@ export const ProjectShell: React.FC = () => {
           />
         )}
 
-        {/* Main Document Workspace */}
+        {/* Main Document Workspace / Planning Studio */}
         <main className="swrite-shell-canvas-area">
-          {selectedFile && !isLoading ? (
+          {studioMode === 'plan' ? (
+            <PlanningStudio
+              manuscriptFiles={filesView?.manuscript_files || []}
+              planningFiles={filesView?.planning_files || []}
+              onOpenFile={(path) => {
+                setStudioMode('write');
+                openDocument(path);
+              }}
+              onRefreshFiles={refreshFiles}
+            />
+          ) : selectedFile && !isLoading ? (
             <EditorCanvas
               key={selectedFile}
               documentId={selectedFile}
@@ -169,9 +200,14 @@ export const ProjectShell: React.FC = () => {
               <div className="empty-message-box">
                 <h2>{activeProject?.name || 'Swrite Studio'}</h2>
                 <p>Select a document from the sidebar to begin writing, or create a new chapter.</p>
-                <button onClick={createNewChapter} className="empty-create-btn">
-                  + Create First Chapter
-                </button>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '16px' }}>
+                  <button onClick={createNewChapter} className="empty-create-btn">
+                    + Create First Chapter
+                  </button>
+                  <button onClick={() => setStudioMode('plan')} className="empty-create-btn" style={{ background: 'var(--bg-desk)', color: 'var(--text-ink)', border: '1px solid var(--border-quiet)' }}>
+                    Open Planning Studio
+                  </button>
+                </div>
               </div>
             </div>
           )}
