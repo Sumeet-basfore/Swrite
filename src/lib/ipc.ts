@@ -5,6 +5,8 @@ import {
   FileMetadataInfo,
   ProjectFilesystemView,
   ProjectSummary,
+  ProjectUiState,
+  RecentDocumentEntry,
   ReconciliationResult,
   RecoveryDraft,
   SearchResult,
@@ -28,6 +30,18 @@ export const SwriteIpc = {
   projectDiscover: () =>
     invoke<ProjectFilesystemView>('project_discover'),
 
+  projectGetUiState: () =>
+    invoke<ProjectUiState>('project_get_ui_state'),
+
+  projectSetUiState: (uiState: ProjectUiState) =>
+    invoke<void>('project_set_ui_state', { uiState }),
+
+  projectGetRecents: () =>
+    invoke<RecentDocumentEntry[]>('project_get_recents'),
+
+  projectAddRecent: (documentId: string, relativePath: string) =>
+    invoke<void>('project_add_recent', { documentId, relativePath }),
+
   // File operations
   fileRead: (relativePath: string) =>
     invoke<string>('file_read', { relativePath }),
@@ -36,7 +50,7 @@ export const SwriteIpc = {
     invoke<void>('file_write', { relativePath, content }),
 
   fileCreate: (relativePath: string, initialContent?: string) =>
-    invoke<void>('file_create', { relativePath, initialContent }),
+    invoke<string>('file_create', { relativePath, initialContent }),
 
   fileMkdir: (relativePath: string) =>
     invoke<void>('file_mkdir', { relativePath }),
@@ -47,8 +61,17 @@ export const SwriteIpc = {
   fileCopy: (sourceRelative: string, targetRelative: string) =>
     invoke<void>('file_copy', { sourceRelative, targetRelative }),
 
+  fileDuplicate: (relativePath: string) =>
+    invoke<string>('file_duplicate', { relativePath }),
+
   fileDelete: (relativePath: string) =>
     invoke<void>('file_delete', { relativePath }),
+
+  fileDeleteSafe: (relativePath: string) =>
+    invoke<void>('file_delete_safe', { relativePath }),
+
+  fileImport: (sourceAbsolutePath: string, targetRelativePath: string) =>
+    invoke<string>('file_import', { sourceAbsolutePath, targetRelativePath }),
 
   fileExists: (relativePath: string) =>
     invoke<boolean>('file_exists', { relativePath }),

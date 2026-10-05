@@ -1,0 +1,117 @@
+import React from 'react';
+import { ProjectSummary } from '../types/ipc';
+import {
+  Sidebar,
+  Search,
+  Clock,
+  Sparkles,
+  ChevronRight,
+  Maximize2,
+  Sliders,
+} from 'lucide-react';
+
+export interface ShellHeaderProps {
+  project: ProjectSummary | null;
+  activePath: string | null;
+  sidebarCollapsed: boolean;
+  focusMode: boolean;
+  onToggleSidebar: () => void;
+  onOpenSearch: () => void;
+  onToggleRecents: () => void;
+  onToggleFocusMode: () => void;
+  onToggleDevDrawer: () => void;
+  showDevDrawer: boolean;
+}
+
+export const ShellHeader: React.FC<ShellHeaderProps> = ({
+  project,
+  activePath,
+  sidebarCollapsed,
+  focusMode,
+  onToggleSidebar,
+  onOpenSearch,
+  onToggleRecents,
+  onToggleFocusMode,
+  onToggleDevDrawer,
+  showDevDrawer,
+}) => {
+  if (focusMode) return null; // Invisible during deep focus mode
+
+  const renderBreadcrumbs = () => {
+    if (!activePath) return null;
+    const parts = activePath.split('/');
+    return (
+      <div className="shell-breadcrumbs">
+        {parts.map((part, index) => (
+          <React.Fragment key={index}>
+            {index > 0 && <ChevronRight size={12} className="breadcrumb-arrow" />}
+            <span
+              className={`breadcrumb-item ${
+                index === parts.length - 1 ? 'active' : ''
+              }`}
+            >
+              {part}
+            </span>
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <header className="swrite-shell-header">
+      <div className="header-left">
+        <button
+          onClick={onToggleSidebar}
+          className={`header-btn ${!sidebarCollapsed ? 'active' : ''}`}
+          title="Toggle Project Sidebar (Ctrl+B)"
+        >
+          <Sidebar size={16} />
+        </button>
+
+        <div className="header-brand">
+          <Sparkles size={15} className="brand-icon" />
+          <span className="project-name">{project?.name || 'Swrite'}</span>
+        </div>
+
+        {renderBreadcrumbs()}
+      </div>
+
+      <div className="header-right">
+        <button
+          onClick={onOpenSearch}
+          className="header-search-btn"
+          title="Search Project (Ctrl+P or Ctrl+Shift+O)"
+        >
+          <Search size={14} />
+          <span className="search-placeholder">Search project...</span>
+          <kbd className="search-kbd">Ctrl+P</kbd>
+        </button>
+
+        <button
+          onClick={onToggleRecents}
+          className="header-btn"
+          title="Recent Documents"
+        >
+          <Clock size={15} />
+        </button>
+
+        <button
+          onClick={onToggleDevDrawer}
+          className={`header-btn ${showDevDrawer ? 'active' : ''}`}
+          title="Core IPC Inspector"
+        >
+          <Sliders size={15} />
+        </button>
+
+        <button
+          onClick={onToggleFocusMode}
+          className="header-btn"
+          title="Enter Distraction-Free Focus Mode (Ctrl+Shift+F)"
+        >
+          <Maximize2 size={15} />
+        </button>
+      </div>
+    </header>
+  );
+};

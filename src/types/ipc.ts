@@ -49,6 +49,19 @@ export interface FileMetadataInfo {
   is_readonly: boolean;
 }
 
+export interface ProjectUiState {
+  last_opened_document?: string;
+  expanded_folders: string[];
+  sidebar_collapsed: boolean;
+  last_search_scope?: string;
+}
+
+export interface RecentDocumentEntry {
+  document_id: string;
+  relative_path: string;
+  last_opened_at: string;
+}
+
 export interface RecoveryDraft {
   document_id: string;
   relative_path: string;

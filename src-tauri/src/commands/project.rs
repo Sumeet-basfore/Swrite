@@ -1,5 +1,7 @@
 use crate::error::{ProjectError, SwriteError};
 use crate::project::discovery::{discover_project_files, ProjectFilesystemView};
+use crate::project::recents::{RecentDocumentEntry, RecentDocumentsList};
+use crate::project::ui_state::ProjectUiState;
 use crate::project::validation::{validate_and_heal_project, ProjectValidationReport};
 use crate::project::{create_project, open_project, ProjectSummary};
 use crate::state::AppState;
@@ -61,4 +63,54 @@ pub async fn project_discover(
         .ok_or(SwriteError::Project(ProjectError::NoActiveProject))?;
 
     discover_project_files(&root)
+}
+
+#[tauri::command]
+pub async fn project_get_ui_state(
+    state: State<'_, AppState>,
+) -> std::result::Result<ProjectUiState, SwriteError> {
+    let root = state
+        .get_active_project_root()
+        .ok_or(SwriteError::Project(ProjectError::NoActiveProject))?;
+
+    Ok(ProjectUiState::load(&root))
+}
+
+#[tauri::command]
+pub async fn project_set_ui_state(
+    state: State<'_, AppState>,
+    ui_state: ProjectUiState,
+) -> std::result::Result<(), SwriteError> {
+    let root = state
+        .get_active_project_root()
+        .ok_or(SwriteError::Project(ProjectError::NoActiveProject))?;
+
+    ui_state.save(&root)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn project_get_recents(
+    state: State<'_, AppState>,
+) -> std::result::Result<Vec<RecentDocumentEntry>, SwriteError> {
+    let root = state
+        .get_active_project_root()
+        .ok_or(SwriteError::Project(ProjectError::NoActiveProject))?;
+
+    Ok(RecentDocumentsList::load(&root).entries)
+}
+
+#[tauri::command]
+pub async fn project_add_recent(
+    state: State<'_, AppState>,
+    document_id: String,
+    relative_path: String,
+) -> std::result::Result<(), SwriteError> {
+    let root = state
+        .get_active_project_root()
+        .ok_or(SwriteError::Project(ProjectError::NoActiveProject))?;
+
+    let mut list = RecentDocumentsList::load(&root);
+    list.record_open(&root, &document_id, &relative_path)?;
+    Ok(())
 }

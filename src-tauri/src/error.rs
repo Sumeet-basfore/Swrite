@@ -164,6 +164,13 @@ impl From<std::io::Error> for SwriteError {
     }
 }
 
+// Convert serde_json::Error to SwriteError
+impl From<serde_json::Error> for SwriteError {
+    fn from(err: serde_json::Error) -> Self {
+        SwriteError::Filesystem(FilesystemError::Io(format!("JSON error: {}", err)))
+    }
+}
+
 // Serializable error payload for Tauri IPC
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IpcError {

@@ -98,11 +98,11 @@ pub fn discover_project_files(project_root: &Path) -> Result<ProjectFilesystemVi
         }
     }
 
-    manuscript.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
-    planning.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
-    desk.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
-    assets.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
-    others.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
+    manuscript.sort_by(|a, b| natural_cmp(&a.relative_path, &b.relative_path));
+    planning.sort_by(|a, b| natural_cmp(&a.relative_path, &b.relative_path));
+    desk.sort_by(|a, b| natural_cmp(&a.relative_path, &b.relative_path));
+    assets.sort_by(|a, b| natural_cmp(&a.relative_path, &b.relative_path));
+    others.sort_by(|a, b| natural_cmp(&a.relative_path, &b.relative_path));
 
     Ok(ProjectFilesystemView {
         manuscript_files: manuscript,
@@ -111,6 +111,53 @@ pub fn discover_project_files(project_root: &Path) -> Result<ProjectFilesystemVi
         asset_files: assets,
         other_visible_files: others,
     })
+}
+
+/// Natural alphanumeric comparator: "Chapter 2" < "Chapter 10"
+pub fn natural_cmp(a: &str, b: &str) -> std::cmp::Ordering {
+    let mut a_chars = a.chars().peekable();
+    let mut b_chars = b.chars().peekable();
+
+    while let (Some(&ac), Some(&bc)) = (a_chars.peek(), b_chars.peek()) {
+        if ac.is_ascii_digit() && bc.is_ascii_digit() {
+            let mut a_num = 0u64;
+            while let Some(&c) = a_chars.peek() {
+                if c.is_ascii_digit() {
+                    a_num = a_num * 10 + (c as u64 - '0' as u64);
+                    a_chars.next();
+                } else {
+                    break;
+                }
+            }
+
+            let mut b_num = 0u64;
+            while let Some(&c) = b_chars.peek() {
+                if c.is_ascii_digit() {
+                    b_num = b_num * 10 + (c as u64 - '0' as u64);
+                    b_chars.next();
+                } else {
+                    break;
+                }
+            }
+
+            match a_num.cmp(&b_num) {
+                std::cmp::Ordering::Equal => continue,
+                non_eq => return non_eq,
+            }
+        } else {
+            let ac_lower = ac.to_ascii_lowercase();
+            let bc_lower = bc.to_ascii_lowercase();
+            match ac_lower.cmp(&bc_lower) {
+                std::cmp::Ordering::Equal => {
+                    a_chars.next();
+                    b_chars.next();
+                }
+                non_eq => return non_eq,
+            }
+        }
+    }
+
+    a.len().cmp(&b.len())
 }
 
 #[cfg(test)]
@@ -138,5 +185,21 @@ mod tests {
             .manuscript_files
             .iter()
             .any(|f| f.relative_path.contains(".swrite")));
+    }
+
+    #[test]
+    fn test_natural_sorting() {
+        assert_eq!(
+            natural_cmp("Manuscript/Chapter 2.md", "Manuscript/Chapter 10.md"),
+            std::cmp::Ordering::Less
+        );
+        assert_eq!(
+            natural_cmp("Scene 01.md", "Scene 02.md"),
+            std::cmp::Ordering::Less
+        );
+        assert_eq!(
+            natural_cmp("Scene 10.md", "Scene 9.md"),
+            std::cmp::Ordering::Greater
+        );
     }
 }

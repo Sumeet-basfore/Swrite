@@ -1,11 +1,15 @@
 pub mod discovery;
 pub mod identity;
 pub mod manifest;
+pub mod recents;
+pub mod ui_state;
 pub mod validation;
 
 pub use discovery::*;
 pub use identity::*;
 pub use manifest::*;
+pub use recents::*;
+pub use ui_state::*;
 pub use validation::*;
 
 use crate::error::{ProjectError, Result, SwriteError};
