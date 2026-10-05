@@ -321,6 +321,22 @@ export interface ScannedFile {
   isDocx?: boolean;
 }
 
+export function isHiddenPath(path: string): boolean {
+  return path.split(/[\\/]/).some(segment => segment.startsWith('.'));
+}
+
+function withoutHiddenEntries(project: ProjectData): ProjectData {
+  return {
+    ...project,
+    acts: (project.acts || [])
+      .filter(act => !isHiddenPath(act.title))
+      .map(act => ({
+        ...act,
+        chapters: (act.chapters || []).filter(chapter => !isHiddenPath(chapter.title)),
+      })),
+  };
+}
+
 export const StorageService = {
   loadProject(): ProjectData {
     try {
@@ -349,7 +365,7 @@ export const StorageService = {
             }
           });
         }
-        return migrateProjectToStoryEngine(parsed);
+        return migrateProjectToStoryEngine(withoutHiddenEntries(parsed));
       }
     } catch (e) {
       console.error('Failed to load project from localStorage:', e);
@@ -491,7 +507,7 @@ export const StorageService = {
     const files: ScannedFile[] = [];
 
     for await (const [name, handle] of (dirHandle as any).entries()) {
-      if (name.startsWith('.') || name === 'node_modules' || name === 'dist' || name === 'build') {
+      if (isHiddenPath(name) || name === 'node_modules' || name === 'dist' || name === 'build') {
         continue;
       }
 
@@ -543,6 +559,7 @@ export const StorageService = {
    * Build structured ProjectData from Obsidian vault / markdown / docx files
    */
   buildProjectFromFiles(folderName: string, files: ScannedFile[]): ProjectData {
+    files = files.filter(file => !isHiddenPath(file.path));
     files.sort((a, b) => this.naturalSort(a.path, b.path));
 
     const folderGroups: Record<string, { file: ScannedFile; parsed: any }[]> = {};
@@ -848,6 +865,8 @@ title: "${chapter.title.replace(/"/g, '\\"')}"${statusStr}${tagsStr}${povStr}${s
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i];
       const relPath = (file as any).webkitRelativePath || file.name;
+      if (isHiddenPath(relPath)) continue;
+
       const pathParts = relPath.split('/');
 
       if (pathParts.length > 1) {

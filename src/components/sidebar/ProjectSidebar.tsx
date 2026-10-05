@@ -45,13 +45,6 @@ export const ProjectSidebar: React.FC = () => {
   const [isStoryOpen, setIsStoryOpen] = useState(false);
   const [isToolsOpen, setIsToolsOpen] = useState(false);
 
-  // Show/hide dot-prefixed chapters (Ctrl+H toggle)
-  const [showDotFiles, setShowDotFiles] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('swrite_show_dot_files') === 'true';
-    } catch { return false; }
-  });
-
   // Expanded Acts & Chapters
   const [expandedActs, setExpandedActs] = useState<Record<string, boolean>>({});
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
@@ -250,6 +243,7 @@ export const ProjectSidebar: React.FC = () => {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      if (file.name.startsWith('.')) continue;
       try {
         const parsed = await StorageService.parseSingleFile(file);
         const newChId = addNewChapter(targetAct.id, parsed.title);
@@ -513,14 +507,14 @@ export const ProjectSidebar: React.FC = () => {
           {isManuscriptOpen && (
             <div className="space-y-1.5">
               {project.acts
-                .filter(act => showDotFiles || !act.title.startsWith('.'))
+                .filter(act => !act.title.startsWith('.'))
                 .map((act, actIndex) => {
                 const isExpanded = expandedActs[act.id] !== false;
                 const isEditingAct = editingActId === act.id;
                 const isActDropTarget = dropIndicator?.actId === act.id && dropIndicator?.position === 'inside';
 
                 const filteredChapters = act.chapters.filter(c => {
-                  if (!showDotFiles && c.title.startsWith('.')) return false;
+                  if (c.title.startsWith('.')) return false;
                   if (searchTerm && !c.title.toLowerCase().includes(searchTerm.toLowerCase())) {
                     return false;
                   }
