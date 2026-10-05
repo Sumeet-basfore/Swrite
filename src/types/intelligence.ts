@@ -123,3 +123,88 @@ export interface OrganizationModelProvider {
   isAvailable(): boolean;
   analyzeProject(project: any, options?: IntelligenceAnalysisOptions): Promise<ProjectIntelligenceResult>;
 }
+
+/**
+ * Continuous Intelligence Status indicator for UI and indexing
+ */
+export type IntelligenceStatus = 
+  | 'up-to-date' 
+  | 'changes-detected' 
+  | 'analysis-pending' 
+  | 'needs-review' 
+  | 'conflict-detected';
+
+/**
+ * Record tracking the content hash and dirty state of a single document/entity
+ */
+export interface ContentHashRecord {
+  id: string;
+  title: string;
+  type: 'chapter' | 'scene' | 'character' | 'location' | 'faction' | 'item' | 'research' | 'cut-drawer' | 'event';
+  hash: string;
+  lastModified: string;
+  lastAnalyzed?: string;
+  status: IntelligenceStatus;
+}
+
+/**
+ * Non-canonical intelligence index stored alongside project state or generated on demand
+ */
+export interface ProjectIntelligenceIndex {
+  projectId: string;
+  lastFullAnalysis?: string;
+  lastIncrementalAnalysis?: string;
+  contentHashes: Record<string, ContentHashRecord>;
+  extractedEntityIds: string[];
+  knownAliases: Record<string, string[]>;
+  dirtyDocumentIds: string[];
+  inboxItemIds: string[];
+}
+
+/**
+ * Delta calculation between current project data and previous intelligence index
+ */
+export interface IncrementalChangeDelta {
+  projectId: string;
+  dirtyDocumentIds: string[];
+  addedDocumentIds: string[];
+  updatedDocumentIds: string[];
+  deletedDocumentIds: string[];
+  retrievalScopeIds: string[];
+  timestamp: string;
+}
+
+export type InboxItemStatus = 'pending' | 'accepted' | 'rejected' | 'ignored' | 'remember-later';
+export type InboxFilterCategory = 'all' | 'characters' | 'timeline' | 'outline' | 'relationships' | 'research' | 'conflicts' | 'duplicates';
+
+/**
+ * Organization Inbox item representing a single proposal under author review
+ */
+export interface OrganizationInboxItem {
+  id: string;
+  proposal: OrganizationProposal;
+  category: InboxFilterCategory;
+  status: InboxItemStatus;
+  createdTimestamp: string;
+  updatedTimestamp?: string;
+  userFacingReason: string;
+  contextSnippet?: string;
+}
+
+/**
+ * Subtle inline suggestion for Editor, Timeline, Outliner, or Inspector
+ */
+export interface ContextualSuggestion {
+  id: string;
+  domain: OrganizationDomain;
+  targetId?: string;
+  targetName: string;
+  suggestionType: 'new-character' | 'alias-link' | 'location-mention' | 'timeline-event' | 'canon-conflict' | 'duplicate-warning';
+  title: string;
+  text: string;
+  snippet?: string;
+  proposalId?: string;
+  priority: 'low' | 'medium' | 'high';
+  createdAt: string;
+}
+

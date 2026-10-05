@@ -7,3 +7,6 @@ export * from './classifier';
 export * from './applier';
 export * from './provider';
 export * from './queries';
+export * from './indexer';
+export * from './incrementalEngine';
+

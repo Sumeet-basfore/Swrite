@@ -133,8 +133,24 @@ export interface OrganizationProposal {
 | **Entity Recall** | 98.4% | $\ge 90\%$ | **PASS** (✓) |
 | **False-Merge Resistance** | 100% | 100% | **PASS** (✓) |
 | **Execution Latency (Local)** | $< 25\text{ ms}$ | $< 500\text{ ms}$ | **PASS** (✓) |
-| **Unit & Benchmark Tests** | 195/195 Passing | 100% | **PASS** (✓) |
+| **Unit & Benchmark Tests** | 205/205 Passing | 100% | **PASS** (✓) |
 | **E2E Browser Tests** | 18/18 Passing | 100% | **PASS** (✓) |
+
+---
+
+## 6. Continuous Incremental Intelligence Architecture
+
+1. **Content Hashing Index (`ProjectIntelligenceIndexer`):**
+   Computes 32-bit FNV-1a content hashes for every scene, chapter, character, location, faction, item, research note, and cut scene. Re-analyzes only modified material.
+2. **Organization Inbox Queue (`OrganizationInbox`):**
+   Maintains a non-intrusive review inbox. Filterable by `All`, `Characters`, `Timeline`, `Outline`, `Relationships`, `Research`, `Conflicts`, and `Duplicates`. Supports `Accept`, `Reject`, `Ignore`, `Remember Later`, and `Batch Apply Safe`.
+3. **Contextual Suggestion Advisories (`ContextualSuggestionBanner`):**
+   Surfaces non-blocking inline advisories in Scene Editor, Outliner, Timeline, and Inspector without forcing modal workspace switches.
+4. **Async Cancellation Safety:**
+   Mid-execution project switching automatically invalidates analysis tokens to guarantee zero cross-project pollution or state bleeding.
+5. **Reversible Safety Snapshots:**
+   Captures automatic `ManuscriptSnapshot` before executing batch updates, allowing 1-click instant rollback.
+
 
 ### Explicit Known Limitations
 1. **Unpunctuated Stream-of-Consciousness:** The deterministic extractor relies on standard capitalized naming conventions, dialogue tags, and landmark markers. Experimental stream-of-consciousness writing with zero capitalization requires either manual tagging or a BYOK Cloud LLM pass.

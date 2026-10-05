@@ -78,7 +78,6 @@ export const ProjectIntelligenceApplier = {
             };
             updated.characters.push(newChar);
           }
-          appliedCount++;
           break;
         }
 
@@ -98,7 +97,6 @@ export const ProjectIntelligenceApplier = {
               tags: ['extracted']
             };
             updated.locations.push(newLoc);
-            appliedCount++;
           }
           break;
         }
@@ -119,7 +117,6 @@ export const ProjectIntelligenceApplier = {
               tags: ['extracted']
             };
             updated.factions.push(newFaction);
-            appliedCount++;
           }
           break;
         }
@@ -140,7 +137,6 @@ export const ProjectIntelligenceApplier = {
               tags: ['extracted']
             };
             updated.items.push(newItem);
-            appliedCount++;
           }
           break;
         }
@@ -160,7 +156,6 @@ export const ProjectIntelligenceApplier = {
               status: 'active'
             };
             updated.plotThreads.push(newThread);
-            appliedCount++;
           }
           break;
         }
@@ -184,7 +179,6 @@ export const ProjectIntelligenceApplier = {
               tags: ['extracted']
             };
             updated.events.push(newEvent);
-            appliedCount++;
           }
           break;
         }
@@ -206,7 +200,6 @@ export const ProjectIntelligenceApplier = {
               updatedAt: new Date().toISOString()
             };
             updated.researchNotes.push(newNote);
-            appliedCount++;
           }
           break;
         }
@@ -227,17 +220,19 @@ export const ProjectIntelligenceApplier = {
                   updatedAt: new Date().toISOString()
                 };
                 ch.scenes = [defaultScene];
-                appliedCount++;
               }
             });
           });
           break;
         }
+
       }
 
       proposal.status = 'applied';
       proposal.appliedAt = new Date().toISOString();
+      appliedCount++;
     });
+
 
     updated.metadata.updatedAt = new Date().toISOString();
 
