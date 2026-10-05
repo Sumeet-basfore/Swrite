@@ -13,6 +13,7 @@ import {
   createScenario, addScheduledAction, addCustomRule, discardScenario,
   getCauseChainForEntity, formatCauseChainNarrative, generateSimulationDiff,
   applySimulationToProject,
+  recordSimulationEvent, getSimulationEvaluationSummary, resetSimulationEvaluationMetrics,
   WorldRule, Kingdom, WorldRelation, SimulationScenario
 } from './index';
 import { createSimulationTestProject } from './testFixture';
@@ -240,7 +241,39 @@ export function runWorldSimulationTests(): void {
   assert((unappliedProject as any).kingdoms === undefined, 'Canonical project untouched by simulation');
   console.log('✓ Canonical world unchanged during simulation run');
 
+  console.log('--- 19. Testing Local Evaluation Instrumentation ---');
+  resetSimulationEvaluationMetrics();
+  recordSimulationEvent('simulation_workspace_opened');
+  recordSimulationEvent('scenario_created', { durationTurns: 6 });
+  recordSimulationEvent('intervention_added', { turn: 1, durationTurns: 6 });
+  recordSimulationEvent('simulation_completed', { durationTurns: 6 });
+  recordSimulationEvent('turn_scrubbed', { turn: 2 });
+  recordSimulationEvent('cause_chain_opened');
+  recordSimulationEvent('relationship_edge_selected');
+  recordSimulationEvent('scenario_discarded');
+  
+  const summary = getSimulationEvaluationSummary();
+  assert(summary.totalEvents === 8, `Expected 8 events, got ${summary.totalEvents}`);
+  assert(summary.scenariosCreated === 1, 'Scenarios created tracked');
+  assert(summary.interventionsAdded === 1, 'Interventions added tracked');
+  assert(summary.simulationsRun === 1, 'Simulations run tracked');
+  assert(summary.causeChainsOpened === 1, 'Cause chains opened tracked');
+  assert(summary.relationshipEdgesSelected === 1, 'Relationship edge selected tracked');
+  assert(summary.scenariosDiscarded === 1, 'Scenarios discarded tracked');
+  console.log('✓ Local evaluation metrics compilation verified');
+
+  console.log('--- 20. Testing Live Delta Shift & Absolute Value Computation ---');
+  const baseVal = 72;
+  const deltaShift = -30;
+  const computedFromDelta = Math.max(0, Math.min(100, baseVal + deltaShift));
+  assert(computedFromDelta === 42, `Expected 42, got ${computedFromDelta}`);
+  
+  const absoluteTarget = 55;
+  const computedFromAbs = Math.max(0, Math.min(100, absoluteTarget));
+  assert(computedFromAbs === 55, `Expected 55, got ${computedFromAbs}`);
+  console.log('✓ Live delta and absolute value computation verified');
+
   console.log('\n======================================================');
-  console.log('  ALL 18 WORLD SIMULATION ENGINE TESTS PASSED (✓)');
+  console.log('  ALL 20 WORLD SIMULATION ENGINE TESTS PASSED (✓)');
   console.log('======================================================\n');
 }

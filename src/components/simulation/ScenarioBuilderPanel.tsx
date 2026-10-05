@@ -3,9 +3,10 @@ import {
   SimulationScenario, ScheduledScenarioAction, SimulationState, 
   Kingdom, WorldRelation 
 } from '../../engine/simulation/types';
+import { recordSimulationEvent } from '../../engine/simulation/analytics';
 import { 
   Plus, Trash2, Sliders, Shield, Wheat, Coins, Swords, 
-  AlertCircle, ArrowRightLeft, Sparkles, X 
+  AlertCircle, ArrowRightLeft, Sparkles, X, ArrowRight, Calculator 
 } from 'lucide-react';
 
 interface ScenarioBuilderPanelProps {
@@ -31,27 +32,46 @@ export const ScenarioBuilderPanel: React.FC<ScenarioBuilderPanelProps> = ({
   const [actionCategory, setActionCategory] = useState<'resource' | 'metric' | 'war' | 'embargo'>('metric');
   const [targetKingdomId, setTargetKingdomId] = useState(kingdoms[0]?.id || '');
   const [targetProperty, setTargetProperty] = useState('foodSupply');
-  const [deltaValue, setDeltaValue] = useState(-30);
-  const [turn, setTurn] = useState(1);
+  const [adjustmentMode, setAdjustmentMode] = useState<'delta' | 'absolute'>('delta');
+  const [deltaValue, setDeltaValue] = useState<number>(-30);
+  const [absoluteValue, setAbsoluteValue] = useState<number>(40);
+  const [turn, setTurn] = useState<number>(1);
 
   // Diplomatic relation targets
   const [sourceKingdomId, setSourceKingdomId] = useState(kingdoms[0]?.id || '');
   const [destKingdomId, setDestKingdomId] = useState(kingdoms[1]?.id || kingdoms[0]?.id || '');
 
+  // Helper to resolve current attribute value
+  const selectedKingdom = baseState.kingdoms[targetKingdomId];
+  const currentValue = (selectedKingdom as any)?.[targetProperty] ?? 50;
+
+  // Compute live preview value
+  const previewValue = adjustmentMode === 'delta' 
+    ? Math.max(0, Math.min(100, currentValue + Number(deltaValue || 0)))
+    : Math.max(0, Math.min(100, Number(absoluteValue || 0)));
+
   const handleAddIntervention = () => {
     if (actionCategory === 'metric' || actionCategory === 'resource') {
       const kingdom = baseState.kingdoms[targetKingdomId];
-      const currentVal = (kingdom as any)?.[targetProperty] ?? 50;
+      const deltaToApply = adjustmentMode === 'delta' 
+        ? Number(deltaValue)
+        : Number(absoluteValue) - currentValue;
+
       onAddAction({
         turn,
         actionType: 'adjust_resource',
         sourceEntityId: targetKingdomId,
         parameters: {
           property: targetProperty,
-          delta: Number(deltaValue)
+          delta: deltaToApply,
+          mode: adjustmentMode,
+          targetValue: previewValue
         },
-        explanation: `Author scheduled ${kingdom?.name || targetKingdomId} ${targetProperty} delta (${deltaValue > 0 ? `+${deltaValue}` : deltaValue}) at Turn ${turn}`
+        explanation: adjustmentMode === 'delta'
+          ? `${kingdom?.name || targetKingdomId} ${targetProperty} shift (${deltaValue > 0 ? `+${deltaValue}` : deltaValue}): ${currentValue} → ${previewValue}`
+          : `${kingdom?.name || targetKingdomId} ${targetProperty} set to ${absoluteValue}: ${currentValue} → ${previewValue}`
       });
+      recordSimulationEvent('intervention_added', { turn, durationTurns: scenario.durationTurns });
     } else if (actionCategory === 'war') {
       const srcK = baseState.kingdoms[sourceKingdomId];
       const destK = baseState.kingdoms[destKingdomId];
@@ -63,6 +83,7 @@ export const ScenarioBuilderPanel: React.FC<ScenarioBuilderPanelProps> = ({
         parameters: { tension: 90 },
         explanation: `Hostilities and war declared between ${srcK?.name || sourceKingdomId} and ${destK?.name || destKingdomId}`
       });
+      recordSimulationEvent('intervention_added', { turn, durationTurns: scenario.durationTurns });
     } else if (actionCategory === 'embargo') {
       const srcK = baseState.kingdoms[sourceKingdomId];
       const destK = baseState.kingdoms[destKingdomId];
@@ -74,9 +95,15 @@ export const ScenarioBuilderPanel: React.FC<ScenarioBuilderPanelProps> = ({
         parameters: { tradeValue: 0 },
         explanation: `Trade embargo imposed by ${srcK?.name || sourceKingdomId} against ${destK?.name || destKingdomId}`
       });
+      recordSimulationEvent('intervention_added', { turn, durationTurns: scenario.durationTurns });
     }
 
     setIsAddingChange(false);
+  };
+
+  const handleRemove = (actionId: string) => {
+    onRemoveAction(actionId);
+    recordSimulationEvent('intervention_removed');
   };
 
   return (
@@ -200,7 +227,7 @@ export const ScenarioBuilderPanel: React.FC<ScenarioBuilderPanelProps> = ({
                     </div>
                   </div>
                   <button
-                    onClick={() => onRemoveAction(action.id)}
+                    onClick={() => handleRemove(action.id)}
                     className="text-zinc-600 hover:text-rose-400 p-0.5 transition-colors cursor-pointer"
                     title="Remove Change"
                     data-testid={`btn-remove-action-${action.id}`}
@@ -213,7 +240,7 @@ export const ScenarioBuilderPanel: React.FC<ScenarioBuilderPanelProps> = ({
           )}
         </div>
 
-        {/* Add Intervention Modal / Form Drawer */}
+        {/* Add Intervention Form Drawer with Live Delta Preview */}
         {isAddingChange && (
           <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 space-y-3 shadow-xl animate-in fade-in duration-100">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5">
@@ -281,30 +308,84 @@ export const ScenarioBuilderPanel: React.FC<ScenarioBuilderPanelProps> = ({
                       <option value="magicReserve">Mana / Magic</option>
                     </select>
                   </div>
+
                   <div>
-                    <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-0.5">Delta Shift</label>
-                    <input
-                      type="number"
-                      value={deltaValue}
-                      onChange={(e) => setDeltaValue(Number(e.target.value))}
-                      className="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100"
-                      placeholder="-30"
-                      data-testid="input-metric-value"
-                    />
+                    <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-0.5">Mode</label>
+                    <select
+                      value={adjustmentMode}
+                      onChange={(e) => setAdjustmentMode(e.target.value as any)}
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-200 cursor-pointer"
+                      data-testid="select-adjustment-mode"
+                    >
+                      <option value="delta">Delta Shift (+ / -)</option>
+                      <option value="absolute">Set Absolute (=)</option>
+                    </select>
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-0.5">Intervention Turn</label>
-                  <select
-                    value={turn}
-                    onChange={(e) => setTurn(Number(e.target.value))}
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-200 cursor-pointer"
-                  >
-                    <option value={1}>Turn 1 (Immediate)</option>
-                    <option value={2}>Turn 2</option>
-                    <option value={3}>Turn 3</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-0.5">
+                      {adjustmentMode === 'delta' ? 'Delta Adjustment' : 'Absolute Target'}
+                    </label>
+                    {adjustmentMode === 'delta' ? (
+                      <input
+                        type="number"
+                        value={deltaValue}
+                        onChange={(e) => setDeltaValue(Number(e.target.value))}
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100"
+                        placeholder="-30"
+                        data-testid="input-metric-value"
+                      />
+                    ) : (
+                      <input
+                        type="number"
+                        value={absoluteValue}
+                        onChange={(e) => setAbsoluteValue(Number(e.target.value))}
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-100"
+                        placeholder="40"
+                        min={0}
+                        max={100}
+                        data-testid="input-absolute-value"
+                      />
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-0.5">Intervention Turn</label>
+                    <select
+                      value={turn}
+                      onChange={(e) => setTurn(Number(e.target.value))}
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-200 cursor-pointer"
+                    >
+                      <option value={1}>Turn 1 (Immediate)</option>
+                      <option value={2}>Turn 2</option>
+                      <option value={3}>Turn 3</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Live Delta / Outcome Preview Box */}
+                <div 
+                  className="bg-zinc-950 border border-indigo-900/60 rounded p-2.5 text-xs text-zinc-300 space-y-1"
+                  data-testid="live-delta-preview"
+                >
+                  <div className="flex items-center space-x-1.5 text-[10px] font-semibold text-indigo-400 uppercase">
+                    <Calculator className="w-3 h-3" />
+                    <span>Live Intervention Preview</span>
+                  </div>
+
+                  {adjustmentMode === 'delta' ? (
+                    <div className="font-mono text-[11px] flex items-center justify-between pt-0.5">
+                      <span>{currentValue} + ({deltaValue > 0 ? `+${deltaValue}` : deltaValue}) = <strong className="text-zinc-100">{previewValue}</strong></span>
+                      <span className="text-[10px] text-zinc-400">Current: {currentValue} → After: {previewValue}</span>
+                    </div>
+                  ) : (
+                    <div className="font-mono text-[11px] flex items-center justify-between pt-0.5">
+                      <span>Direct set: <strong className="text-zinc-100">{absoluteValue}</strong></span>
+                      <span className="text-[10px] text-zinc-400">Current: {currentValue} → After: {previewValue}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -340,6 +421,10 @@ export const ScenarioBuilderPanel: React.FC<ScenarioBuilderPanelProps> = ({
                     </select>
                   </div>
                 </div>
+
+                <div className="bg-zinc-950 border border-rose-900/40 rounded p-2 text-[11px] text-rose-300 font-mono">
+                  State → WAR • Tension → 90 • Bilateral Trade → 0G
+                </div>
               </div>
             )}
 
@@ -371,6 +456,10 @@ export const ScenarioBuilderPanel: React.FC<ScenarioBuilderPanelProps> = ({
                       ))}
                     </select>
                   </div>
+                </div>
+
+                <div className="bg-zinc-950 border border-amber-900/40 rounded p-2 text-[11px] text-amber-300 font-mono">
+                  Trade Volume → 0G • Trust −30 • Tension +25
                 </div>
               </div>
             )}

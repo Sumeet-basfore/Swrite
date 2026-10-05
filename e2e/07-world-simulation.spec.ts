@@ -52,6 +52,11 @@ test.describe('Part 22 — World Simulation Workspace & What-If Scenarios (Exper
     await page.getByTestId('btn-add-change').click();
     await page.waitForTimeout(200);
     await page.getByTestId('input-metric-value').fill('-35');
+    
+    // Verify Live Delta / Target preview is rendered
+    await expect(page.getByTestId('live-delta-preview')).toBeVisible();
+    await expect(page.getByTestId('live-delta-preview')).toContainText('-35');
+    
     await page.getByTestId('btn-confirm-add-change').click();
     await page.waitForTimeout(300);
 
@@ -73,6 +78,20 @@ test.describe('Part 22 — World Simulation Workspace & What-If Scenarios (Exper
       await firstNode.click();
       await page.waitForTimeout(200);
       await expect(page.getByTestId('sim-selected-entity-card')).toBeVisible();
+      // Close entity card
+      await page.getByTestId('btn-close-entity-card').click();
+      await page.waitForTimeout(200);
+    }
+
+    // 7b. Click an edge in the 2D Map to inspect bilateral relationship details
+    const firstEdge = page.locator('[data-testid^="sim-edge-"]').first();
+    if (await firstEdge.isVisible()) {
+      await firstEdge.click({ force: true });
+      await page.waitForTimeout(200);
+      await expect(page.getByTestId('sim-selected-relation-card')).toBeVisible();
+      // Close relation card
+      await page.getByTestId('btn-close-relation-card').click();
+      await page.waitForTimeout(200);
     }
 
     // 8. Scrub Timeline: click Turn 2
@@ -82,6 +101,13 @@ test.describe('Part 22 — World Simulation Workspace & What-If Scenarios (Exper
       await page.waitForTimeout(200);
       await expect(page.getByText('Turn 2 (Simulated)')).toBeVisible();
     }
+
+    // 8b. Check Evaluation Metrics Modal
+    await page.getByTestId('btn-eval-summary').click();
+    await page.waitForTimeout(200);
+    await expect(page.getByTestId('simulation-metrics-modal')).toBeVisible();
+    await page.getByRole('button', { name: 'Close' }).click();
+    await page.waitForTimeout(200);
 
     // 9. Discard Scenario and verify canonical world remains 100% untouched
     await page.getByTestId('btn-discard-scenario').click();

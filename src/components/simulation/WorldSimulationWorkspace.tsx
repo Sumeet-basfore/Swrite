@@ -13,6 +13,10 @@ import {
 import { simulate } from '../../engine/simulation/simulator';
 import { applySimulationToProject } from '../../engine/simulation/apply';
 import { DEFAULT_WORLD_RULES } from '../../engine/simulation/rules';
+import { 
+  recordSimulationEvent, getSimulationEvaluationSummary, 
+  resetSimulationEvaluationMetrics, SimulationEvaluationSummary 
+} from '../../engine/simulation/analytics';
 
 import { WorldStateMap2D } from './WorldStateMap2D';
 import { ScenarioBuilderPanel } from './ScenarioBuilderPanel';
@@ -22,12 +26,17 @@ import { ApplyScenarioModal } from './ApplyScenarioModal';
 
 import { 
   Globe2, Plus, Play, Trash2, ShieldCheck, CheckCircle2, 
-  Sliders, AlertCircle, RotateCcw, ArrowRight, BookOpen, Layers, X 
+  Sliders, AlertCircle, RotateCcw, ArrowRight, BookOpen, Layers, X, BarChart3 
 } from 'lucide-react';
 
 export const WorldSimulationWorkspace: React.FC = () => {
   const { project, setProject, setActiveTab } = useSwriteStore();
   const theme = project.metadata.theme;
+
+  // Track workspace open event on mount
+  useEffect(() => {
+    recordSimulationEvent('simulation_workspace_opened');
+  }, []);
 
   // 1. Initialize Baseline Simulation State from Canonical Project
   const baseState = useMemo(() => {
@@ -39,6 +48,7 @@ export const WorldSimulationWorkspace: React.FC = () => {
   const [simulatedState, setSimulatedState] = useState<SimulationState | null>(null);
   const [viewingTurn, setViewingTurn] = useState<number>(0);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [selectedRelationId, setSelectedRelationId] = useState<string | null>(null);
 
   // Modals & Confirmation state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -48,6 +58,8 @@ export const WorldSimulationWorkspace: React.FC = () => {
 
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const [applyConfirmation, setApplyConfirmation] = useState<CanonicalApplyConfirmation | null>(null);
+  const [isEvalSummaryOpen, setIsEvalSummaryOpen] = useState(false);
+  const [evalSummary, setEvalSummary] = useState<SimulationEvaluationSummary | null>(null);
 
   // Current display state for 2D map based on viewingTurn
   const currentDisplayState = useMemo(() => {
@@ -79,6 +91,7 @@ export const WorldSimulationWorkspace: React.FC = () => {
     setSimulatedState(null);
     setViewingTurn(0);
     setIsCreateModalOpen(false);
+    recordSimulationEvent('scenario_created', { durationTurns: newScenarioDuration });
   };
 
   // Handle Add Action
@@ -105,6 +118,8 @@ export const WorldSimulationWorkspace: React.FC = () => {
   // Handle Run Simulation
   const handleRunSimulation = () => {
     if (!activeScenario) return;
+    recordSimulationEvent('simulation_started', { durationTurns: activeScenario.durationTurns });
+    
     const finalState = simulate(
       baseState,
       DEFAULT_WORLD_RULES,
@@ -116,6 +131,13 @@ export const WorldSimulationWorkspace: React.FC = () => {
     const updatedScenario: SimulationScenario = { ...activeScenario, status: 'completed' };
     setActiveScenario(updatedScenario);
     setViewingTurn(activeScenario.durationTurns);
+    recordSimulationEvent('simulation_completed', { durationTurns: activeScenario.durationTurns });
+  };
+
+  // Handle Turn Scrubbing
+  const handleSelectTurn = (turn: number) => {
+    setViewingTurn(turn);
+    recordSimulationEvent('turn_scrubbed', { turn });
   };
 
   // Handle Discard Scenario
@@ -127,7 +149,9 @@ export const WorldSimulationWorkspace: React.FC = () => {
     setSimulatedState(null);
     setViewingTurn(0);
     setSelectedEntityId(null);
+    setSelectedRelationId(null);
     setApplyConfirmation(null);
+    recordSimulationEvent('scenario_discarded');
   };
 
   // Handle Apply Scenario
@@ -145,6 +169,13 @@ export const WorldSimulationWorkspace: React.FC = () => {
     setProject(updatedProject);
     setApplyConfirmation(confirmation);
     setIsApplyModalOpen(false);
+    recordSimulationEvent('scenario_applied');
+  };
+
+  // Open Eval Summary
+  const handleOpenEvalSummary = () => {
+    setEvalSummary(getSimulationEvaluationSummary());
+    setIsEvalSummaryOpen(true);
   };
 
   const kingdomCount = Object.keys(baseState.kingdoms).length;
@@ -195,6 +226,17 @@ export const WorldSimulationWorkspace: React.FC = () => {
 
         {/* Action Controls */}
         <div className="flex items-center space-x-2">
+          {/* Developer Eval Summary Trigger */}
+          <button
+            onClick={handleOpenEvalSummary}
+            className="px-2.5 py-1 rounded text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex items-center space-x-1 cursor-pointer border border-zinc-800"
+            title="Local Evaluation Metrics"
+            data-testid="btn-eval-summary"
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Metrics</span>
+          </button>
+
           {activeScenario ? (
             <>
               <button
@@ -326,6 +368,8 @@ export const WorldSimulationWorkspace: React.FC = () => {
               baseState={baseState}
               selectedEntityId={selectedEntityId}
               onSelectEntity={setSelectedEntityId}
+              selectedRelationId={selectedRelationId}
+              onSelectRelation={setSelectedRelationId}
               viewingTurn={viewingTurn}
               theme={theme}
             />
@@ -344,7 +388,7 @@ export const WorldSimulationWorkspace: React.FC = () => {
           <SimulationTurnTimeline
             simulatedState={simulatedState}
             viewingTurn={viewingTurn}
-            onSelectTurn={setViewingTurn}
+            onSelectTurn={handleSelectTurn}
             maxTurns={activeScenario.durationTurns}
             theme={theme}
           />
@@ -450,6 +494,89 @@ export const WorldSimulationWorkspace: React.FC = () => {
           simulatedState={simulatedState}
           theme={theme}
         />
+      )}
+
+      {/* Developer Evaluation Summary Modal */}
+      {isEvalSummaryOpen && evalSummary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-100">
+          <div 
+            className="w-full max-w-lg rounded-xl border shadow-2xl p-5 text-xs font-sans space-y-4"
+            style={{ 
+              backgroundColor: theme.colors?.surface || '#16161a',
+              borderColor: theme.colors?.border || '#27272a',
+              color: theme.colors?.text || '#f4f4f5'
+            }}
+            data-testid="simulation-metrics-modal"
+          >
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+              <div className="flex items-center space-x-2">
+                <BarChart3 className="w-4 h-4 text-indigo-400" />
+                <h3 className="font-serif font-bold text-sm text-zinc-100">
+                  Local Dogfooding Metrics Summary
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsEvalSummaryOpen(false)}
+                className="text-zinc-500 hover:text-zinc-300 text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Scenarios Created</span>
+                <div className="text-lg font-bold font-mono text-zinc-100 mt-0.5">{evalSummary.scenariosCreated}</div>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Interventions Added</span>
+                <div className="text-lg font-bold font-mono text-zinc-100 mt-0.5">{evalSummary.interventionsAdded}</div>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Simulations Run</span>
+                <div className="text-lg font-bold font-mono text-zinc-100 mt-0.5">{evalSummary.simulationsRun}</div>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Cause Chains Opened</span>
+                <div className="text-lg font-bold font-mono text-zinc-100 mt-0.5">{evalSummary.causeChainsOpened}</div>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Edges Selected</span>
+                <div className="text-lg font-bold font-mono text-zinc-100 mt-0.5">{evalSummary.relationshipEdgesSelected}</div>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Turns Scrubbed</span>
+                <div className="text-lg font-bold font-mono text-zinc-100 mt-0.5">{evalSummary.turnScrubCount}</div>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Scenarios Discarded</span>
+                <div className="text-lg font-bold font-mono text-amber-300 mt-0.5">{evalSummary.scenariosDiscarded}</div>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 p-2.5 rounded">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Scenarios Applied</span>
+                <div className="text-lg font-bold font-mono text-emerald-300 mt-0.5">{evalSummary.scenariosApplied}</div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
+              <button
+                onClick={() => {
+                  resetSimulationEvaluationMetrics();
+                  setEvalSummary(getSimulationEvaluationSummary());
+                }}
+                className="text-[11px] text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+              >
+                Reset Metrics
+              </button>
+              <button
+                onClick={() => setIsEvalSummaryOpen(false)}
+                className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-xs transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

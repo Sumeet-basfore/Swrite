@@ -7,6 +7,7 @@ import {
   generateSimulationDiff, getCauseChainForEntity, formatCauseChainNarrative 
 } from '../../engine/simulation/explain';
 import { DEFAULT_WORLD_RULES } from '../../engine/simulation/rules';
+import { recordSimulationEvent } from '../../engine/simulation/analytics';
 import { 
   CheckCircle2, AlertTriangle, ArrowRight, Shield, Activity, 
   Flame, HelpCircle, ChevronDown, ChevronRight, BookOpen, Layers
@@ -174,7 +175,10 @@ export const SimulationResultsPanel: React.FC<SimulationResultsPanelProps> = ({
                       return (
                         <div
                           key={m.key}
-                          onClick={() => setSelectedPropKey(simK.name)}
+                          onClick={() => {
+                            setSelectedPropKey(simK.name);
+                            recordSimulationEvent('cause_chain_opened');
+                          }}
                           className={`flex items-center justify-between px-2 py-1 rounded cursor-pointer transition-colors ${
                             isSelected ? 'bg-indigo-950/60 border border-indigo-700/60' : 'bg-zinc-950/50 hover:bg-zinc-800/50'
                           }`}

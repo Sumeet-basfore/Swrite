@@ -13,3 +13,4 @@ export * from './simulator';
 export * from './explain';
 export * from './scenarios';
 export * from './apply';
+export * from './analytics';

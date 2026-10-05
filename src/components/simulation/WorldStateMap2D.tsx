@@ -1,12 +1,15 @@
 import React, { useMemo } from 'react';
 import { Kingdom, WorldRelation, SimulationState } from '../../engine/simulation/types';
-import { Shield, Wheat, Coins, Swords, Flame, Sparkles, ArrowRightLeft, AlertTriangle } from 'lucide-react';
+import { recordSimulationEvent } from '../../engine/simulation/analytics';
+import { Shield, Wheat, Coins, Swords, Flame, Sparkles, ArrowRightLeft, AlertTriangle, Handshake, ShieldAlert } from 'lucide-react';
 
 interface WorldStateMap2DProps {
   state: SimulationState;
   baseState: SimulationState;
   selectedEntityId: string | null;
   onSelectEntity: (entityId: string | null) => void;
+  selectedRelationId: string | null;
+  onSelectRelation: (relationId: string | null) => void;
   viewingTurn: number;
   theme: any;
 }
@@ -16,6 +19,8 @@ export const WorldStateMap2D: React.FC<WorldStateMap2DProps> = ({
   baseState,
   selectedEntityId,
   onSelectEntity,
+  selectedRelationId,
+  onSelectRelation,
   viewingTurn,
   theme
 }) => {
@@ -51,6 +56,8 @@ export const WorldStateMap2D: React.FC<WorldStateMap2DProps> = ({
 
   const selectedKingdom = state.kingdoms[selectedEntityId || ''];
   const baseKingdom = baseState.kingdoms[selectedEntityId || ''];
+  const selectedRelation = state.relations[selectedRelationId || ''];
+  const baseRelation = baseState.relations[selectedRelationId || ''];
 
   // Helper to format relation color & state
   const getRelationColor = (rel: WorldRelation) => {
@@ -97,7 +104,10 @@ export const WorldStateMap2D: React.FC<WorldStateMap2DProps> = ({
         <svg 
           viewBox="0 0 700 480" 
           className="w-full h-full max-h-[580px] object-contain"
-          onClick={() => onSelectEntity(null)}
+          onClick={() => {
+            onSelectEntity(null);
+            onSelectRelation(null);
+          }}
         >
           {/* Background Grid Pattern */}
           <defs>
@@ -120,19 +130,53 @@ export const WorldStateMap2D: React.FC<WorldStateMap2DProps> = ({
               const isWar = rel.type === 'hostility' || rel.hostilityValue >= 70;
               const isTension = rel.militaryTension >= 60;
               const label = getRelationLabel(rel);
+              const isSelected = selectedRelationId === rel.id;
 
               return (
-                <g key={rel.id} className="relation-edge">
-                  {/* Line */}
+                <g 
+                  key={rel.id} 
+                  className="relation-edge cursor-pointer group"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectEntity(null);
+                    onSelectRelation(rel.id);
+                    recordSimulationEvent('relationship_edge_selected');
+                  }}
+                  data-testid={`sim-edge-${rel.id}`}
+                >
+                  {/* Invisible wide hit target for easier clicking */}
                   <line
                     x1={posA.x}
                     y1={posA.y}
                     x2={posB.x}
                     y2={posB.y}
-                    stroke={strokeColor}
-                    strokeWidth={isWar ? 3 : 2}
+                    stroke="transparent"
+                    strokeWidth={16}
+                  />
+
+                  {/* Selection glow */}
+                  {isSelected && (
+                    <line
+                      x1={posA.x}
+                      y1={posA.y}
+                      x2={posB.x}
+                      y2={posB.y}
+                      stroke="#818cf8"
+                      strokeWidth={isWar ? 6 : 5}
+                      strokeOpacity={0.6}
+                    />
+                  )}
+
+                  {/* Visible Line */}
+                  <line
+                    x1={posA.x}
+                    y1={posA.y}
+                    x2={posB.x}
+                    y2={posB.y}
+                    stroke={isSelected ? '#c7d2fe' : strokeColor}
+                    strokeWidth={isSelected ? 3.5 : isWar ? 3 : 2}
                     strokeDasharray={isWar ? '6,4' : isTension ? '4,4' : undefined}
-                    strokeOpacity={0.75}
+                    strokeOpacity={isSelected ? 1 : 0.75}
                   />
 
                   {/* Midpoint Label Badge */}
@@ -143,16 +187,17 @@ export const WorldStateMap2D: React.FC<WorldStateMap2DProps> = ({
                       width="90"
                       height="22"
                       rx="4"
-                      fill="#18181b"
-                      stroke={strokeColor}
-                      strokeWidth="1"
-                      strokeOpacity="0.8"
+                      fill={isSelected ? '#312e81' : '#18181b'}
+                      stroke={isSelected ? '#a5b4fc' : strokeColor}
+                      strokeWidth={isSelected ? 1.5 : 1}
+                      strokeOpacity={isSelected ? 1 : 0.8}
+                      className="transition-colors"
                     />
                     <text
                       x="0"
                       y="3.5"
                       textAnchor="middle"
-                      fill="#e4e4e7"
+                      fill={isSelected ? '#ffffff' : '#e4e4e7'}
                       fontSize="9.5"
                       fontFamily="sans-serif"
                       fontWeight="600"
@@ -182,7 +227,9 @@ export const WorldStateMap2D: React.FC<WorldStateMap2DProps> = ({
                   className="cursor-pointer transition-transform hover:scale-105"
                   onClick={(e) => {
                     e.stopPropagation();
+                    onSelectRelation(null);
                     onSelectEntity(k.id);
+                    recordSimulationEvent('node_selected');
                   }}
                   data-testid={`sim-node-${k.id}`}
                 >
@@ -292,6 +339,7 @@ export const WorldStateMap2D: React.FC<WorldStateMap2DProps> = ({
             <button
               onClick={() => onSelectEntity(null)}
               className="text-zinc-500 hover:text-zinc-300 text-xs px-1.5 py-0.5 rounded hover:bg-zinc-800 cursor-pointer"
+              data-testid="btn-close-entity-card"
             >
               ✕
             </button>
@@ -384,7 +432,14 @@ export const WorldStateMap2D: React.FC<WorldStateMap2DProps> = ({
                   const otherId = r.sourceEntityId === selectedKingdom.id ? r.targetEntityId : r.sourceEntityId;
                   const other = state.kingdoms[otherId];
                   return (
-                    <div key={r.id} className="flex items-center justify-between text-[11px] bg-zinc-800/40 px-2 py-1 rounded">
+                    <div 
+                      key={r.id} 
+                      onClick={() => {
+                        onSelectEntity(null);
+                        onSelectRelation(r.id);
+                      }}
+                      className="flex items-center justify-between text-[11px] bg-zinc-800/40 hover:bg-zinc-800/80 px-2 py-1 rounded cursor-pointer transition-colors"
+                    >
                       <span className="text-zinc-300 truncate max-w-[120px]">{other?.name || otherId}</span>
                       <span className="font-mono font-semibold text-[10px]" style={{ color: getRelationColor(r) }}>
                         {getRelationLabel(r)} (Tension: {r.militaryTension})
@@ -394,6 +449,98 @@ export const WorldStateMap2D: React.FC<WorldStateMap2DProps> = ({
                 })}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Selected Relationship Contextual Inspector Card */}
+      {selectedRelation && (
+        <div 
+          className="absolute bottom-4 right-4 z-20 w-84 bg-zinc-900/95 border border-indigo-500/60 backdrop-blur-md rounded-lg p-4 shadow-2xl text-xs text-zinc-200 animate-in fade-in duration-150"
+          data-testid="sim-selected-relation-card"
+        >
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-3">
+            <div className="flex items-center space-x-2">
+              <Handshake className="w-4 h-4 text-indigo-400" />
+              <span className="font-serif font-bold text-sm text-zinc-100">
+                Diplomatic Relationship
+              </span>
+            </div>
+            <button
+              onClick={() => onSelectRelation(null)}
+              className="text-zinc-500 hover:text-zinc-300 text-xs px-1.5 py-0.5 rounded hover:bg-zinc-800 cursor-pointer"
+              data-testid="btn-close-relation-card"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="bg-zinc-950/70 border border-zinc-800 rounded p-2.5 mb-3 flex items-center justify-between">
+            <div className="font-serif font-semibold text-zinc-200">
+              {state.kingdoms[selectedRelation.sourceEntityId]?.name || selectedRelation.sourceEntityId}
+            </div>
+            <div className="font-mono text-zinc-500 text-xs">↔</div>
+            <div className="font-serif font-semibold text-zinc-200">
+              {state.kingdoms[selectedRelation.targetEntityId]?.name || selectedRelation.targetEntityId}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {/* Status */}
+            <div className="bg-zinc-800/60 p-2 rounded border border-zinc-800 flex flex-col">
+              <span className="text-[10px] text-zinc-400 uppercase font-semibold">State</span>
+              <span 
+                className="font-mono text-sm font-bold mt-0.5"
+                style={{ color: getRelationColor(selectedRelation) }}
+              >
+                {getRelationLabel(selectedRelation)}
+              </span>
+            </div>
+
+            {/* Military Tension */}
+            <div className="bg-zinc-800/60 p-2 rounded border border-zinc-800 flex flex-col">
+              <span className="text-[10px] text-zinc-400 uppercase font-semibold">Border Tension</span>
+              <div className="flex items-baseline space-x-1.5 mt-0.5">
+                <span className="font-mono text-sm font-bold text-zinc-100">{selectedRelation.militaryTension}</span>
+                {baseRelation && baseRelation.militaryTension !== selectedRelation.militaryTension && (
+                  <span className={`text-[10px] font-mono font-semibold ${selectedRelation.militaryTension > baseRelation.militaryTension ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    ({selectedRelation.militaryTension > baseRelation.militaryTension ? '+' : ''}{selectedRelation.militaryTension - baseRelation.militaryTension})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Trade Volume */}
+            <div className="bg-zinc-800/60 p-2 rounded border border-zinc-800 flex flex-col">
+              <span className="text-[10px] text-zinc-400 uppercase font-semibold">Trade Volume</span>
+              <div className="flex items-baseline space-x-1.5 mt-0.5">
+                <span className="font-mono text-sm font-bold text-zinc-100">{selectedRelation.tradeValue}G</span>
+                {baseRelation && baseRelation.tradeValue !== selectedRelation.tradeValue && (
+                  <span className={`text-[10px] font-mono font-semibold ${selectedRelation.tradeValue < baseRelation.tradeValue ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    ({selectedRelation.tradeValue < baseRelation.tradeValue ? '' : '+'}{selectedRelation.tradeValue - baseRelation.tradeValue})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Trust Rating */}
+            <div className="bg-zinc-800/60 p-2 rounded border border-zinc-800 flex flex-col">
+              <span className="text-[10px] text-zinc-400 uppercase font-semibold">Diplomatic Trust</span>
+              <div className="flex items-baseline space-x-1.5 mt-0.5">
+                <span className="font-mono text-sm font-bold text-zinc-100">{selectedRelation.trustValue}</span>
+                {baseRelation && baseRelation.trustValue !== selectedRelation.trustValue && (
+                  <span className={`text-[10px] font-mono font-semibold ${selectedRelation.trustValue < baseRelation.trustValue ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    ({selectedRelation.trustValue < baseRelation.trustValue ? '' : '+'}{selectedRelation.trustValue - baseRelation.trustValue})
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {selectedRelation.notes && (
+            <p className="text-[11px] text-zinc-400 italic bg-zinc-950/40 p-2 rounded border border-zinc-800">
+              {selectedRelation.notes}
+            </p>
+          )}
         </div>
       )}
     </div>
