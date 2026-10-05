@@ -14,11 +14,15 @@ import { ProofreadingEngine } from '../../editorial';
 import { RevisionQueries } from '../../editorial/revision';
 import { ManuscriptReviewMode } from '../revision/ManuscriptReviewMode';
 import { Finding, RevisionItemCategory, RevisionItemPriority, REVISION_CATEGORY_LABELS, REVISION_PRIORITY_LABELS } from '../../types';
+import { SplitPaneContainer } from './SplitPaneContainer';
+import { MarginCommentsPanel } from './MarginCommentsPanel';
+import { FootnoteEditorBar } from './FootnoteEditorBar';
+import { ambientAudio } from '../../services/ambientAudioService';
 import { 
   Bold, Italic, Underline as UnderlineIcon, MessageSquare, 
   BookOpen, MessageSquarePlus, ChevronRight, X, ChevronDown,
   Maximize2, Minimize2, Scissors, SpellCheck, Check, EyeOff, Shield,
-  FileEdit
+  FileEdit, Columns, Rows, LayoutGrid, Bookmark, Music, Volume2, Headphones
 } from 'lucide-react';
 
 interface FloatingPosition {
@@ -48,7 +52,13 @@ export const NovelEditor: React.FC<NovelEditorProps> = ({
     acceptProofreadingFinding, ignoreProofreadingFinding,
     markProofreadingFindingIntentional,
     activeRevisionRoundId, isRevisionReviewModeOpen, setIsRevisionReviewModeOpen,
-    createInlineRevisionNote
+    createInlineRevisionNote,
+    splitPaneState, setSplitPaneState, closeSplitPane,
+    editorViewMode, setEditorViewMode,
+    focusModeConfig, updateFocusModeConfig,
+    activeAnnotationId, setActiveAnnotationId, isMarginCommentsOpen, setIsMarginCommentsOpen,
+    activeFootnoteId, setActiveFootnoteId, isFootnoteDrawerOpen, setIsFootnoteDrawerOpen,
+    addAnnotationThread, addFootnote
   } = useSwriteStore();
 
   const currentChId = customChapterId || (isSecondaryPane ? secondaryChapterId : activeChapterId);
@@ -373,6 +383,15 @@ export const NovelEditor: React.FC<NovelEditorProps> = ({
     
     editor?.chain().focus().setHighlight({ color }).run();
 
+    if (activeScene) {
+      addAnnotationThread({
+        sceneId: activeScene.id,
+        highlightedText: floatingMenu.selectedText,
+        comment: noteInputText,
+        color: selectedHighlightColor
+      });
+    }
+
     addAnnotation({
       id: `ann-${Date.now()}`,
       chapterId: activeChapter.id,
@@ -437,7 +456,7 @@ export const NovelEditor: React.FC<NovelEditorProps> = ({
   const wordCount = activeScene?.wordCount || activeChapter?.wordCount || 0;
   const allChapters = project.acts.flatMap(a => a.chapters.map(c => ({ ...c, actTitle: a.title })));
 
-  return (
+  const editorBody = (
     <div 
       className="relative flex-1 flex flex-col h-full overflow-hidden"
       style={{
@@ -516,6 +535,84 @@ export const NovelEditor: React.FC<NovelEditorProps> = ({
 
           <div className="flex items-center space-x-3 text-zinc-400 text-xs">
             <span className="font-mono text-[11px]">{wordCount.toLocaleString()} words</span>
+
+            {/* View Switcher [Manuscript | Corkboard] */}
+            {!isSecondaryPane && activeChapter?.scenes && activeChapter.scenes.length > 0 && (
+              <div className="flex items-center rounded-md border border-zinc-700 bg-zinc-900/90 p-0.5 text-xs">
+                <button
+                  onClick={() => setEditorViewMode('editor')}
+                  className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                    editorViewMode === 'editor' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  Editor
+                </button>
+                <button
+                  onClick={() => setEditorViewMode('corkboard')}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                    editorViewMode === 'corkboard' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  <LayoutGrid className="w-3 h-3" />
+                  Corkboard
+                </button>
+              </div>
+            )}
+
+            {!isSecondaryPane && (
+              <button 
+                onClick={() => setSplitPaneState({ isOpen: !splitPaneState.isOpen })}
+                className={`flex items-center space-x-1 px-2 py-0.5 rounded transition-colors text-xs ${
+                  splitPaneState.isOpen 
+                    ? 'bg-amber-600/20 text-amber-400 border border-amber-500/30' 
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                }`}
+                title="Toggle Split-Screen Reference View"
+              >
+                <Columns className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Split</span>
+              </button>
+            )}
+
+            {!isSecondaryPane && (
+              <button 
+                onClick={() => setIsMarginCommentsOpen(!isMarginCommentsOpen)}
+                className={`flex items-center space-x-1 px-2 py-0.5 rounded transition-colors text-xs ${
+                  isMarginCommentsOpen 
+                    ? 'bg-amber-600/20 text-amber-400 border border-amber-500/30' 
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                }`}
+                title="Toggle Margin Comments & Annotations"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Comments</span>
+                {(project.annotationThreads || []).filter(t => t.sceneId === activeScene?.id && !t.isResolved).length > 0 && (
+                  <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded-full text-[10px] font-mono">
+                    {(project.annotationThreads || []).filter(t => t.sceneId === activeScene?.id && !t.isResolved).length}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {!isSecondaryPane && (
+              <button 
+                onClick={() => setIsFootnoteDrawerOpen(!isFootnoteDrawerOpen)}
+                className={`flex items-center space-x-1 px-2 py-0.5 rounded transition-colors text-xs ${
+                  isFootnoteDrawerOpen 
+                    ? 'bg-amber-600/20 text-amber-400 border border-amber-500/30' 
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                }`}
+                title="Toggle Footnotes & Endnotes Tray"
+              >
+                <Bookmark className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Notes</span>
+                {(project.footnotes || []).filter(f => f.sceneId === activeScene?.id).length > 0 && (
+                  <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded-full text-[10px] font-mono">
+                    {(project.footnotes || []).filter(f => f.sceneId === activeScene?.id).length}
+                  </span>
+                )}
+              </button>
+            )}
 
             {!isSecondaryPane && (
               <button 
@@ -647,7 +744,17 @@ export const NovelEditor: React.FC<NovelEditorProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Footnote Editor Bar (Bottom Docked) */}
+          {isFootnoteDrawerOpen && !isSecondaryPane && activeScene && (
+            <FootnoteEditorBar sceneId={activeScene.id} />
+          )}
         </div>
+
+        {/* Margin Comments Panel Side Drawer */}
+        {isMarginCommentsOpen && !isSecondaryPane && activeScene && (
+          <MarginCommentsPanel sceneId={activeScene.id} />
+        )}
 
         {/* Proofreading Review Panel Side Drawer */}
         {isProofreadingOpen && !isSecondaryPane && (
@@ -829,6 +936,21 @@ export const NovelEditor: React.FC<NovelEditorProps> = ({
             <FileEdit className="w-3 h-3 text-amber-400" />
             <span className="text-[11px]">Revise</span>
           </button>
+
+          {/* Add Footnote */}
+          {activeScene && (
+            <button
+              onClick={() => {
+                addFootnote(activeScene.id, `Citation/note on: "${floatingMenu.selectedText.slice(0, 30)}..."`);
+                setFloatingMenu(prev => ({ ...prev, visible: false }));
+              }}
+              className="flex items-center space-x-1 px-2 py-0.5 rounded hover:bg-zinc-800 text-amber-300 hover:text-amber-200 transition-colors"
+              title="Insert Footnote at Selection"
+            >
+              <Bookmark className="w-3 h-3 text-amber-400" />
+              <span className="text-[11px]">Footnote</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -1010,4 +1132,10 @@ export const NovelEditor: React.FC<NovelEditorProps> = ({
       )}
     </div>
   );
+
+  if (!isSecondaryPane && splitPaneState.isOpen) {
+    return <SplitPaneContainer>{editorBody}</SplitPaneContainer>;
+  }
+
+  return editorBody;
 };

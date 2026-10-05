@@ -9,7 +9,8 @@ import {
   GoalStatus, BeliefStatus, BeliefCertainty, SecretStatus, Finding, ProofreadingConfig,
   RevisionRound, RevisionItem, RevisionSnapshot, RevisionPassType, RevisionRoundStatus,
   RevisionItemStatus, RevisionItemPriority, RevisionItemCategory, RevisionScope,
-  ManuscriptSnapshot, SnapshotRestoreOptions, SnapshotRestoreResult, SnapshotDiffResult, CreateSnapshotOptions
+  ManuscriptSnapshot, SnapshotRestoreOptions, SnapshotRestoreResult, SnapshotDiffResult, CreateSnapshotOptions,
+  SplitPaneState, EditorViewMode, FocusModeConfig, AnnotationThread, AnnotationComment, FootnoteItem
 } from '../types';
 import { ContinuityWarning } from '../types/continuity';
 import { StorageService, INITIAL_NOVEL_DATA, getPersistedUserTheme, getPersistedUserTypography } from '../services/storageService';
@@ -47,6 +48,15 @@ export interface SwriteState {
   isOrganizerModalOpen: boolean;
   isVersionHistoryModalOpen: boolean;
   activeCompareSnapshotId: string | null;
+
+  // Editor Enhancements State
+  splitPaneState: SplitPaneState;
+  editorViewMode: EditorViewMode;
+  focusModeConfig: FocusModeConfig;
+  activeAnnotationId: string | null;
+  activeFootnoteId: string | null;
+  isMarginCommentsOpen: boolean;
+  isFootnoteDrawerOpen: boolean;
   
   syncStatus: SyncStatus;
   
@@ -280,6 +290,25 @@ export interface SwriteState {
   toggleSnapshotPinned: (snapshotId: string) => void;
   compareWithSnapshot: (snapshotId: string) => SnapshotDiffResult | null;
   pruneOldSnapshots: (maxAutoCount?: number) => void;
+
+  // Editor Enhancements Actions
+  setSplitPaneState: (state: Partial<SplitPaneState>) => void;
+  closeSplitPane: () => void;
+  setEditorViewMode: (mode: EditorViewMode) => void;
+  updateFocusModeConfig: (config: Partial<FocusModeConfig>) => void;
+  setActiveAnnotationId: (id: string | null) => void;
+  setActiveFootnoteId: (id: string | null) => void;
+  setIsMarginCommentsOpen: (open: boolean) => void;
+  setIsFootnoteDrawerOpen: (open: boolean) => void;
+
+  addAnnotationThread: (data: { sceneId: string; highlightedText: string; comment: string; author?: string; color?: string }) => AnnotationThread;
+  addCommentToThread: (threadId: string, text: string, author?: string) => void;
+  resolveAnnotationThread: (threadId: string, resolved?: boolean) => void;
+  deleteAnnotationThread: (threadId: string) => void;
+
+  addFootnote: (sceneId: string, text?: string) => FootnoteItem;
+  updateFootnote: (id: string, text: string) => void;
+  deleteFootnote: (id: string) => void;
 }
 
 let globalState: ProjectData = StorageService.loadProject();
@@ -317,6 +346,25 @@ let isSettingsModalOpen = false;
 let isOrganizerModalOpen = false;
 let isVersionHistoryModalOpen = false;
 let activeCompareSnapshotId: string | null = null;
+
+let splitPaneState: SplitPaneState = {
+  isOpen: false,
+  orientation: 'vertical',
+  entityType: 'scene',
+  entityId: null,
+  ratio: 0.5
+};
+let editorViewMode: EditorViewMode = 'editor';
+let focusModeConfig: FocusModeConfig = {
+  isTypewriterScrolling: false,
+  dimmingMode: 'off',
+  ambientSound: 'none',
+  soundVolume: 0.5
+};
+let activeAnnotationId: string | null = null;
+let activeFootnoteId: string | null = null;
+let isMarginCommentsOpen = false;
+let isFootnoteDrawerOpen = false;
 
 let syncStatusState: SyncStatus = StorageService.hasLocalDirectoryHandle() ? 'synced' : 'offline';
 let autoSaveTimeout: any = null;
@@ -442,6 +490,16 @@ export function useSwriteStore(): SwriteState {
     activeRevisionRoundId,
     activeRevisionItemId,
     isRevisionReviewModeOpen,
+
+    // Editor Enhancements State
+    splitPaneState,
+    editorViewMode,
+    focusModeConfig,
+    activeAnnotationId,
+    activeFootnoteId,
+    isMarginCommentsOpen,
+    isFootnoteDrawerOpen,
+
     sprint: sprintState,
     aiConfig: aiConfigState,
 
@@ -1623,6 +1681,181 @@ export function useSwriteStore(): SwriteState {
         ...globalState,
         snapshots: pruned
       };
+      emitChange();
+    },
+
+    // Editor Enhancements Action Implementations
+    setSplitPaneState: (state: Partial<SplitPaneState>) => {
+      splitPaneState = { ...splitPaneState, ...state };
+      emitChange();
+    },
+
+    closeSplitPane: () => {
+      splitPaneState = { ...splitPaneState, isOpen: false };
+      emitChange();
+    },
+
+    setEditorViewMode: (mode: EditorViewMode) => {
+      editorViewMode = mode;
+      emitChange();
+    },
+
+    updateFocusModeConfig: (config: Partial<FocusModeConfig>) => {
+      focusModeConfig = { ...focusModeConfig, ...config };
+      emitChange();
+    },
+
+    setActiveAnnotationId: (id: string | null) => {
+      activeAnnotationId = id;
+      emitChange();
+    },
+
+    setActiveFootnoteId: (id: string | null) => {
+      activeFootnoteId = id;
+      emitChange();
+    },
+
+    setIsMarginCommentsOpen: (open: boolean) => {
+      isMarginCommentsOpen = open;
+      emitChange();
+    },
+
+    setIsFootnoteDrawerOpen: (open: boolean) => {
+      isFootnoteDrawerOpen = open;
+      emitChange();
+    },
+
+    addAnnotationThread: (data: { sceneId: string; highlightedText: string; comment: string; author?: string; color?: string }) => {
+      const newComment: AnnotationComment = {
+        id: `com-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        author: data.author || 'Author',
+        text: data.comment,
+        createdAt: Date.now()
+      };
+
+      const newThread: AnnotationThread = {
+        id: `ann-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        sceneId: data.sceneId,
+        highlightedText: data.highlightedText,
+        comments: [newComment],
+        isResolved: false,
+        color: data.color || 'yellow',
+        createdAt: Date.now()
+      };
+
+      globalState = {
+        ...globalState,
+        annotationThreads: [...(globalState.annotationThreads || []), newThread]
+      };
+      activeAnnotationId = newThread.id;
+      isMarginCommentsOpen = true;
+      emitChange();
+      return newThread;
+    },
+
+    addCommentToThread: (threadId: string, text: string, author?: string) => {
+      const newComment: AnnotationComment = {
+        id: `com-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        author: author || 'Author',
+        text,
+        createdAt: Date.now()
+      };
+
+      globalState = {
+        ...globalState,
+        annotationThreads: (globalState.annotationThreads || []).map(t => {
+          if (t.id === threadId) {
+            return {
+              ...t,
+              comments: [...t.comments, newComment]
+            };
+          }
+          return t;
+        })
+      };
+      emitChange();
+    },
+
+    resolveAnnotationThread: (threadId: string, resolved: boolean = true) => {
+      globalState = {
+        ...globalState,
+        annotationThreads: (globalState.annotationThreads || []).map(t => {
+          if (t.id === threadId) {
+            return { ...t, isResolved: resolved };
+          }
+          return t;
+        })
+      };
+      emitChange();
+    },
+
+    deleteAnnotationThread: (threadId: string) => {
+      globalState = {
+        ...globalState,
+        annotationThreads: (globalState.annotationThreads || []).filter(t => t.id !== threadId)
+      };
+      if (activeAnnotationId === threadId) {
+        activeAnnotationId = null;
+      }
+      emitChange();
+    },
+
+    addFootnote: (sceneId: string, text: string = '') => {
+      const existingFootnotes = (globalState.footnotes || []).filter(f => f.sceneId === sceneId);
+      const nextNumber = existingFootnotes.length + 1;
+      const newFootnote: FootnoteItem = {
+        id: `fn-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        sceneId,
+        number: nextNumber,
+        text,
+        createdAt: Date.now()
+      };
+
+      globalState = {
+        ...globalState,
+        footnotes: [...(globalState.footnotes || []), newFootnote]
+      };
+      activeFootnoteId = newFootnote.id;
+      isFootnoteDrawerOpen = true;
+      emitChange();
+      return newFootnote;
+    },
+
+    updateFootnote: (id: string, text: string) => {
+      globalState = {
+        ...globalState,
+        footnotes: (globalState.footnotes || []).map(f => {
+          if (f.id === id) {
+            return { ...f, text };
+          }
+          return f;
+        })
+      };
+      emitChange();
+    },
+
+    deleteFootnote: (id: string) => {
+      const targetFootnote = (globalState.footnotes || []).find(f => f.id === id);
+      const sceneId = targetFootnote?.sceneId;
+
+      let updatedFootnotes = (globalState.footnotes || []).filter(f => f.id !== id);
+      if (sceneId) {
+        let num = 1;
+        updatedFootnotes = updatedFootnotes.map(f => {
+          if (f.sceneId === sceneId) {
+            return { ...f, number: num++ };
+          }
+          return f;
+        });
+      }
+
+      globalState = {
+        ...globalState,
+        footnotes: updatedFootnotes
+      };
+      if (activeFootnoteId === id) {
+        activeFootnoteId = null;
+      }
       emitChange();
     }
   };

@@ -6,6 +6,7 @@ export * from './proofreading';
 export * from './revision';
 export * from './snapshot';
 export * from './intelligence';
+export * from './editorEnhancements';
 
 import { 
   Scene, PlotThread, StoryArc, Character, Location, 
@@ -16,6 +17,7 @@ import { ProofreadingConfig } from './proofreading';
 import { RevisionRound, RevisionItem, RevisionSnapshot } from './revision';
 import { ManuscriptSnapshot } from './snapshot';
 import { OrganizationProposal, ProjectIntelligenceResult } from './intelligence';
+import { AnnotationThread, FootnoteItem } from './editorEnhancements';
 
 export type WriterPreset = 'pantser' | 'plotter' | 'plantser';
 
@@ -406,6 +408,10 @@ export interface ProjectData {
 
   // Version History & Recovery System
   snapshots?: ManuscriptSnapshot[];
+
+  // Editor Enhancements Collections
+  annotationThreads?: AnnotationThread[];
+  footnotes?: FootnoteItem[];
 
   // Legacy / Companion Stores
   codex?: CodexEntry[];

@@ -7,9 +7,10 @@ import { runIntelligenceEngineTests } from './intelligence/intelligence.test';
 import { runGoldStandardBenchmarkTests } from './intelligence/goldBenchmark.test';
 import { runContinuousIntelligenceTests } from './intelligence/continuousIntelligence.test';
 import { runWorldSimulationTests } from './simulation/simulationEngine.test';
+import { runEditorEnhancementsTests } from './editorEnhancements.test';
 
 console.log('\n======================================================');
-console.log('       SWRITE STORY, CONTINUITY, INTELLIGENCE & SIMULATION TESTS');
+console.log('       SWRITE STORY, CONTINUITY, INTELLIGENCE, SIMULATION & EDITOR TESTS');
 console.log('======================================================\n');
 
 async function main() {
@@ -50,6 +51,9 @@ async function main() {
     runWorldSimulationTests();
     const simCount = 24;
 
+    console.log('\n--- 10. Running Editor Enhancements & Writing Experience Tests ---');
+    runEditorEnhancementsTests();
+    const editorCount = 9;
 
     const totalTests = storyResult.results.length + 
       continuityResult.results.length + 
@@ -59,10 +63,11 @@ async function main() {
       intelResult.results.length +
       benchmarkResult.results.length +
       continuousResult.results.length +
-      simCount;
+      simCount +
+      editorCount;
 
     console.log('\n======================================================');
-    console.log(`  ALL ${totalTests} STORY, CONTINUITY, REVIEW, INSPECTOR, INTELLIGENCE, BENCHMARK, CONTINUOUS & SIMULATION TESTS PASSED (✓)`);
+    console.log(`  ALL ${totalTests} STORY, CONTINUITY, REVIEW, INSPECTOR, INTELLIGENCE, BENCHMARK, CONTINUOUS, SIMULATION & EDITOR TESTS PASSED (✓)`);
     console.log('======================================================\n');
   } catch (err: any) {
     console.error('\n❌ TEST RUNNER FAILED:', err.message || err);

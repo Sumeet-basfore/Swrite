@@ -682,6 +682,16 @@ export const CompilerService = {
               md += `${item.text}\n\n`;
             }
           });
+
+          // Append Chapter / Scene Footnotes
+          const chSceneIds = (ch.scenes || []).map(s => s.id);
+          const chFootnotes = (project.footnotes || []).filter(f => chSceneIds.includes(f.sceneId));
+          if (chFootnotes.length > 0) {
+            md += `\n### Chapter Notes\n\n`;
+            chFootnotes.forEach(fn => {
+              md += `[^${fn.number}]: ${fn.text}\n\n`;
+            });
+          }
         });
       }
     });

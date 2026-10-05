@@ -22,13 +22,17 @@ import { VersionHistoryModal } from './components/version/VersionHistoryModal';
 import { VersionHistoryView } from './components/version/VersionHistoryView';
 import { ProjectOrganizationWorkspace } from './components/organization/ProjectOrganizationWorkspace';
 import { WorldSimulationWorkspace } from './components/simulation/WorldSimulationWorkspace';
+import { CorkboardGridView } from './components/editor/CorkboardGridView';
+import { OutlinerMatrixView } from './components/outliner/OutlinerMatrixView';
+import { ambientAudio } from './services/ambientAudioService';
 
-import { X, Minimize2, ArrowLeft } from 'lucide-react';
+import { X, Minimize2, ArrowLeft, Volume2, Headphones, Sparkles } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { 
     project, activeChapterId, activeSceneId, activeTab, setActiveTab,
-    viewMode, splitMode, setSplitMode, isFocusMode, toggleFocusMode
+    viewMode, splitMode, setSplitMode, isFocusMode, toggleFocusMode,
+    editorViewMode, focusModeConfig, updateFocusModeConfig
   } = useSwriteStore();
 
   // expose setActiveTab in the shortcut closure
@@ -97,18 +101,67 @@ export const App: React.FC = () => {
       <main className="flex-1 flex overflow-hidden relative">
         {/* Fullscreen Distraction-Free Focus Mode */}
         {inFocusMode ? (
-          <div className="flex-1 flex flex-col w-full h-full overflow-hidden relative">
+          <div className={`flex-1 flex flex-col w-full h-full overflow-hidden relative ${
+            focusModeConfig.dimmingMode !== 'off' ? `focus-dim-${focusModeConfig.dimmingMode}` : ''
+          }`}>
             {/* Minimal Distraction-Free Floating Header */}
-            <div className="h-10 px-6 border-b flex items-center justify-between text-xs text-zinc-400 shrink-0 select-none bg-black/30 backdrop-blur-xs border-zinc-800/40 z-20">
-              <div className="flex items-center space-x-2">
+            <div className="h-10 px-6 border-b flex items-center justify-between text-xs text-zinc-400 shrink-0 select-none bg-black/40 backdrop-blur-md border-zinc-800/40 z-20">
+              <div className="flex items-center space-x-3">
                 <span className="font-semibold text-zinc-300">{activeChapter?.title}</span>
                 {activeScene && (
                   <span className="text-zinc-500 font-mono">({activeScene.title || 'Scene'})</span>
                 )}
               </div>
 
+              {/* Focus Controls */}
               <div className="flex items-center space-x-4">
-                <span className="text-[11px] font-mono text-zinc-400">
+                {/* Typewriter Toggle */}
+                <button
+                  onClick={() => updateFocusModeConfig({ isTypewriterScrolling: !focusModeConfig.isTypewriterScrolling })}
+                  className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                    focusModeConfig.isTypewriterScrolling ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                  title="Toggle Typewriter Scrolling (Caret Centering)"
+                >
+                  Typewriter
+                </button>
+
+                {/* Dimming Selector */}
+                <div className="flex items-center space-x-1 text-[11px]">
+                  <span className="text-zinc-500 text-[10px] uppercase">Spotlight:</span>
+                  {(['off', 'sentence', 'paragraph'] as const).map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => updateFocusModeConfig({ dimmingMode: mode })}
+                      className={`px-1.5 py-0.5 rounded capitalize transition-colors ${
+                        focusModeConfig.dimmingMode === mode ? 'bg-zinc-700 text-white font-semibold' : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Ambient Soundscapes */}
+                <div className="flex items-center space-x-1.5 text-[11px]">
+                  <Headphones className="w-3 h-3 text-zinc-400" />
+                  <select
+                    value={focusModeConfig.ambientSound}
+                    onChange={(e) => {
+                      const sound = e.target.value as any;
+                      updateFocusModeConfig({ ambientSound: sound });
+                      ambientAudio.setSound(sound, focusModeConfig.soundVolume);
+                    }}
+                    className="bg-zinc-900 border border-zinc-700 rounded px-1.5 py-0.5 text-[11px] text-zinc-300 focus:outline-none"
+                  >
+                    <option value="none">Audio: Off</option>
+                    <option value="rain">Rainfall</option>
+                    <option value="whitenoise">White Noise</option>
+                    <option value="cafesound">Coffee Shop</option>
+                  </select>
+                </div>
+
+                <span className="text-[11px] font-mono text-zinc-400 border-l border-zinc-800 pl-3">
                   {activeChapter?.wordCount.toLocaleString()} words
                 </span>
                 <button
@@ -117,7 +170,7 @@ export const App: React.FC = () => {
                   title="Exit Focus Mode (ESC)"
                 >
                   <Minimize2 className="w-3 h-3" />
-                  <span>Exit Focus (ESC)</span>
+                  <span>Exit (ESC)</span>
                 </button>
               </div>
             </div>
@@ -194,8 +247,14 @@ export const App: React.FC = () => {
                 {(activeTab === 'editor' || activeTab === 'write') && (
                   <>
                     <ProjectSidebar />
-                    {viewMode === 'continuous' ? <NovelEditor /> : <PaginatedBookView />}
-                    <MarginInspector />
+                    {editorViewMode === 'corkboard' ? (
+                      <CorkboardGridView />
+                    ) : editorViewMode === 'outliner' ? (
+                      <OutlinerMatrixView />
+                    ) : (
+                      viewMode === 'continuous' ? <NovelEditor /> : <PaginatedBookView />
+                    )}
+                    {editorViewMode === 'editor' && <MarginInspector />}
                   </>
                 )}
 

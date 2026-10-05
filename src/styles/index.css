@@ -358,3 +358,53 @@ span.diff-removed {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(120, 120, 120, 0.4);
 }
+
+/* Typewriter Scrolling Mode */
+.typewriter-mode-active {
+  scroll-behavior: smooth;
+}
+
+/* Focus Spotlight Dimming Engine */
+.focus-dim-paragraph .ProseMirror > *:not(.has-focus):not(:focus-within) {
+  opacity: 0.28;
+  transition: opacity 0.2s ease-in-out;
+  filter: blur(0.2px);
+}
+
+.focus-dim-paragraph .ProseMirror > .has-focus,
+.focus-dim-paragraph .ProseMirror > *:focus-within {
+  opacity: 1;
+  filter: none;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.focus-dim-sentence .ProseMirror > *:not(.has-focus):not(:focus-within) {
+  opacity: 0.25;
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Interactive Footnote Badges in Manuscript */
+.footnote-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72em;
+  font-weight: 700;
+  vertical-align: super;
+  line-height: 0;
+  padding: 0 3px;
+  margin: 0 1px;
+  border-radius: 3px;
+  background-color: var(--theme-accent-muted, rgba(245, 158, 11, 0.18));
+  color: var(--theme-accent, #f59e0b);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s ease-out, background-color 0.15s ease;
+}
+
+.footnote-badge:hover {
+  transform: scale(1.15);
+  background-color: var(--theme-accent, #f59e0b);
+  color: #fff;
+}
+
