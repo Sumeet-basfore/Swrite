@@ -4,6 +4,7 @@ import { runReviewQueueTests } from '../editorial/reviewQueue.test';
 import { runInspectorQuickEditTests } from './inspectorQuickEdit.test';
 import { runPhase4Tests } from './phase4.test';
 import { runIntelligenceEngineTests } from './intelligence/intelligence.test';
+import { runGoldStandardBenchmarkTests } from './intelligence/goldBenchmark.test';
 
 console.log('\n======================================================');
 console.log('       SWRITE STORY & CONTINUITY ENGINE TESTS');
@@ -34,17 +35,23 @@ try {
   const intelResult = runIntelligenceEngineTests();
   intelResult.results.forEach(r => console.log(r));
 
+  console.log('\n--- 7. Running AI Project Intelligence Gold-Standard Benchmark Tests ---');
+  const benchmarkResult = runGoldStandardBenchmarkTests();
+  benchmarkResult.results.forEach(r => console.log(r));
+
   const totalTests = storyResult.results.length + 
     continuityResult.results.length + 
     reviewResult.results.length + 
     inspectorResult.results.length + 
     phase4Result.results.length + 
-    intelResult.results.length;
+    intelResult.results.length +
+    benchmarkResult.results.length;
 
   console.log('\n======================================================');
-  console.log(`  ALL ${totalTests} STORY, CONTINUITY, REVIEW, INSPECTOR & INTELLIGENCE TESTS PASSED (✓)`);
+  console.log(`  ALL ${totalTests} STORY, CONTINUITY, REVIEW, INSPECTOR, INTELLIGENCE & BENCHMARK TESTS PASSED (✓)`);
   console.log('======================================================\n');
 } catch (err: any) {
   console.error('\n❌ TEST RUNNER FAILED:', err.message || err);
   process.exit(1);
 }
+

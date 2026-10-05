@@ -23,14 +23,15 @@ export type ProposalOperation =
   | 'merge' 
   | 'link' 
   | 'move' 
-  | 'reclassify'
-  | 'split'
+  | 'reclassify' 
+  | 'split' 
   | 'deduplicate';
 
 export interface SourceReference {
   documentId: string;
   documentTitle: string;
-  documentType: 'chapter' | 'scene' | 'research' | 'file';
+  documentType: 'chapter' | 'scene' | 'research' | 'file' | 'character' | 'location' | 'faction' | 'item';
+  sourceCategory?: 'primary-manuscript' | 'codex' | 'notes' | 'cut-drawer' | 'research';
   paragraphIndex?: number;
   characterRange?: [number, number];
   snippet: string;
@@ -50,6 +51,8 @@ export interface CanonConflict {
   detectedValue: any;
   severity: 'high' | 'medium' | 'low';
   explanation: string;
+  sourceDocumentTitle?: string;
+  isStaleSourceWarning?: boolean;
   resolutionOptions: Array<'keep-existing' | 'update-canon' | 'create-revision-note' | 'ignore'>;
   chosenResolution?: 'keep-existing' | 'update-canon' | 'create-revision-note' | 'ignore';
 }
@@ -61,6 +64,10 @@ export interface DuplicateCandidate {
   similarityScore: number;
   aliasCandidateName: string;
   isPotentialTitleOrNickname: boolean;
+  sharedContextCount?: number;
+  contextualEvidence?: string[];
+  isSameEntityLikelihood?: 'high' | 'medium' | 'low';
+  reasonNotToMerge?: string;
   evidence: string;
 }
 
@@ -72,6 +79,9 @@ export interface OrganizationProposal {
   targetName: string;
   confidence: number; // 0.0 to 1.0
   confidenceLevel: 'high' | 'medium' | 'low';
+  temporalCertainty?: 'known' | 'inferred' | 'unknown';
+  entityNature?: 'active' | 'incidental' | 'historical' | 'research-reference';
+  isStaleDraftWarning?: boolean;
   reasoning: string;
   sourceReferences: SourceReference[];
   proposedData: Record<string, any>;
