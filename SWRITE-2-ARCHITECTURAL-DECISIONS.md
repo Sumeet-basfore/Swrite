@@ -2,7 +2,7 @@
 
 **Document Version:** 1.0.0  
 **Status:** Canonical & Locked  
-**Milestone:** 0 — Product Contract  
+**Milestone:** 1 — Document Model & Filesystem Specification  
 
 ---
 
@@ -20,10 +20,10 @@ flowchart TD
         end
 
         subgraph Backend["Rust Core Layer (Native Performance)"]
-            FS["Atomic Filesystem Engine<br/>(Safe Writes, Watchers)"]
+            FS["Atomic Filesystem Engine<br/>(Safe Writes, Watchers, Recovery)"]
             Parser["Document AST Engine<br/>(CommonMark, GFM, DOCX, TXT)"]
-            Search["Fast Text Search Engine"]
-            Snap["Snapshot & History Engine"]
+            Search["Fast Text Search Engine<br/>(Derived Ephemeral Index)"]
+            Snap["Snapshot & History Engine<br/>(Local Checkpoints)"]
             Exporter["Publication Typesetting Engine<br/>(PDF, DOCX, EPUB)"]
         end
     end
@@ -68,74 +68,161 @@ flowchart TD
   - The author can inspect or edit their manuscript using standard operating system tools (VS Code, Obsidian, Finder) with zero lock-in.
   - Copying the folder creates an instant, complete backup.
 
-```text
-My Novel Project/
-├── Manuscript/
-│   ├── Act 1/
-│   │   ├── 01 - The Opening Gate.md
-│   │   └── 02 - Whispers in the Fog.md
-│   └── Act 2/
-│       └── 01 - The Sunken Tower.md
-├── Planning/
-│   ├── Outline.md
-│   ├── Timeline.md
-│   └── Character Sketches.md
-├── Desk/
-│   ├── Moodboard - The Capital.json
-│   └── Research Notes.md
-├── Assets/
-│   └── map_ancient_realm.png
-└── .swrite/
-    ├── project.json       (UI state, theme, view settings)
-    └── snapshots/         (Automatic crash recovery checkpoints)
-```
+---
+
+### ADR-003: Neutral Abstract Syntax Tree (AST) Document Representation
+- **Context**: Tying internal document storage directly to HTML, ProseMirror JSON, or raw strings causes format lock-in, impedance mismatches, and serialization corruption.
+- **Decision**: Define a **Neutral Document AST** in Rust with corresponding TypeScript bindings.
+  - Composed of typed Block nodes (`Heading`, `Paragraph`, `SceneBreak`, `BlockQuote`, `List`, `Table`, `RawBlock`) and Inline spans (`Text`, `Emphasis`, `Strong`, `Strikethrough`, `CodeSpan`, `Wikilink`, `InlineCommentAnchor`).
+  - AST is the authoritative interchange format across UI rendering, disk serialization, import/export, and search.
+- **Consequences**: Completely isolates formatting logic from view implementations; enables bidirectional round-tripping across Markdown, Plain Text, and DOCX without AST mutations.
 
 ---
 
-### ADR-003: Bidirectional Dual-Model Editor (Rich WYSIWYG & Markdown Source)
+### ADR-004: Bidirectional Dual-Model Editor (Rich WYSIWYG & Markdown Source)
 - **Context**: Authors want the elegance of formatted prose (italics, headings, indentation) but frequently need the speed and precision of raw Markdown syntax.
-- **Decision**: Implement a dual-mode editor synchronized via an abstract syntax tree (AST).
-  - Switching between Rich Mode and Markdown Source Mode is instantaneous and lossless.
-  - Unknown Markdown extensions or HTML comments are preserved without destruction.
+- **Decision**: Implement a dual-mode editor synchronized via the Neutral AST.
+  - Switching between Rich Mode and Markdown Source Mode is instantaneous, non-destructive, and lossless.
+  - Plain formatting (CommonMark + GFM extensions) maps 1:1 to AST nodes.
 - **Consequences**: Writers have complete freedom without ever worrying about format corruption.
 
 ---
 
-### ADR-004: Atomic, Safe-by-Design Persistence Strategy
-- **Context**: File writes during power cuts, OS sleep cycles, or unexpected crashes can cause file truncation (0-byte corrupted files).
+### ADR-005: Markdown Losslessness Strategy & Unknown Node Preservation
+- **Context**: WYSIWYG editors often strip unknown HTML tags, raw blocks, comments, or unsupported syntax extensions during serialization round-trips.
 - **Decision**:
-  1. **Write-to-Temp-and-Rename**: Changes are written to a temporary sibling file (`.filename.tmp`), flushed to disk (`fsync`), and atomically renamed over the target file.
-  2. **Automatic Snapshots**: On every major milestone (chapter change, periodic save, manual backup), Swrite stores rolling snapshots in `.swrite/snapshots/`.
-- **Consequences**: Zero chance of partial file corruption; corrupted project states are mathematically prevented.
+  - Preserve unknown or raw Markdown constructs as `RawBlock` or `RawInline` nodes.
+  - Preserve HTML comments and custom directives verbatim.
+  - Unknown node content is never deleted or reformatted on save unless the user explicitly edits or deletes the block in the editor.
+- **Consequences**: External editors can introduce custom Markdown features without Swrite corrupting or wiping them out.
 
 ---
 
-### ADR-005: Decoupling Publication Engine from Editor Themes
-- **Context**: In typical writing apps, writing in dark mode or choosing a quirky font inadvertently affects exports.
-- **Decision**: The **PUBLISH** environment utilizes dedicated, standalone publication stylesheets and geometry settings (6×9 Paperback, Letter, A5, Shunn Manuscript, Standard EPUB) that are completely isolated from the editor's screen theme.
-- **Consequences**: An author can write in a green-on-black terminal theme while exporting an exquisite, print-ready Garamond paperback.
+### ADR-006: Document Identity Model (UUID Decoupled from Relative Path)
+- **Context**: Relying purely on file paths breaks comment anchors, history snapshots, and wikilinks when files are renamed or moved across folders.
+- **Decision**:
+  - Assign a stable v4 UUID (`DocumentId`) to each logical document.
+  - Map `DocumentId` to physical relative paths in `.swrite/project.json`.
+  - When an external rename is detected, the engine updates the path mapping while preserving the stable `DocumentId`.
+  - If `.swrite/` is missing, assign deterministic UUIDs generated from relative paths upon re-indexing.
+- **Consequences**: Refactoring chapters, reorganizing scenes, or renaming files never breaks internal cross-references, comments, or version histories.
 
 ---
 
-### ADR-006: Hidden-File Discipline & Clean Workspace
-- **Context**: Internal cache files, history trees, and index databases clutter folder navigation and confuse authors.
-- **Decision**: All application-internal files begin with a dot (`.swrite/`, `.history/`, `.cache/`).
-  - Swrite's internal file browser strictly filters and hides all dotfiles by default.
-  - The project binder always looks clean and literary.
-- **Consequences**: No visual junk in the author's primary workspace.
+### ADR-007: Scene & Chapter Physical and Logical Organization
+- **Context**: Some authors organize novels as single chapter files (`Chapter 01.md`), while others use nested scene folders (`Chapter 01/Scene 01.md`).
+- **Decision**:
+  - Support both folder-per-chapter and file-per-chapter physical layouts seamlessly.
+  - Logical structure is modeled in `.swrite/project.json` as a tree of `ManuscriptNode` references.
+  - In-file scene dividers (`* * *`, `---`, `### Scene Title`) are parsed as `SceneBreak` AST nodes.
+- **Consequences**: Maximum structural flexibility without imposing arbitrary hierarchy rules on the writer.
 
 ---
 
-### ADR-007: Future Plugin Architecture Boundary (Post-MVP)
-- **Context**: Extensibility is valuable long-term, but building a plugin engine in MVP creates architectural churn.
-- **Decision**: Define clear conceptual plugin boundaries now, but implement zero plugin infrastructure in MVP:
-  - Extension points: Custom Exporters, Custom Themes, Custom Slash Commands, Side Panels.
-  - Execution model: Sandboxed Web Worker / WASM with explicit, author-granted filesystem permissions.
-- **Consequences**: The core architecture remains clean, unencumbered by premature plugin abstraction.
+### ADR-008: Multi-Factor Comment Anchoring & Storage
+- **Context**: Storing editorial comments inline in Markdown files clutters plain text reading, while storing only character offsets in external files causes drift when text is edited externally.
+- **Decision**:
+  - Store comment metadata and threads in `.swrite/comments.json`.
+  - Employ **Multi-Factor Text Anchoring**: `DocumentId` + `AnchorQuote` (exact text) + `PrefixContext` (preceding 32 chars) + `SuffixContext` (following 32 chars) + `FuzzyLevenshteinRatio`.
+  - If text shifts, fuzzy anchor algorithm re-locates the target quote; if text is deleted, comment transitions cleanly to `Orphaned` state without crashing.
+- **Consequences**: Clean, readable Markdown source files on disk, combined with robust, drift-resistant comment tracking.
 
 ---
 
-### ADR-008: Absolute Exclusion of AI and Cloud Synchronizers
-- **Context**: AI toolchains and cloud syncing introduce external network dependencies, latency, privacy risks, and architectural instability.
-- **Decision**: Swrite 2 has zero AI dependencies and zero cloud servers. The entire application runs 100% offline.
-- **Consequences**: Instantaneous responsiveness, total author privacy, zero telemetry, and permanent local durability.
+### ADR-009: Internal Metadata Boundaries (`.swrite/`)
+- **Context**: Manifest files and UI state must never duplicate canonical manuscript prose or leak into author-facing folders.
+- **Decision**:
+  - All internal configuration, UI view states, comment sidecars, snapshot logs, and search indexes are strictly isolated within `.swrite/`.
+  - `.swrite/` is hidden by default in the app UI.
+  - Zero manuscript content is permanently stored exclusively inside `.swrite/`.
+- **Consequences**: A project remains fully intelligible and portable even if `.swrite/` is stripped or recreated.
+
+---
+
+### ADR-010: External File Change Watching & 3-Way Reconciliation
+- **Context**: Authors may modify manuscript files using external editors (VS Code, Vim, Obsidian) while Swrite is running.
+- **Decision**:
+  - Rust Core utilizes `notify` (FS event watcher) with a 200ms debounce.
+  - If disk changes and Swrite buffer is **clean (unmodified)**: Auto-reload cleanly into memory.
+  - If disk changes and Swrite buffer is **dirty (unsaved)**: Surface a non-blocking, non-destructive **Reconciliation Dialog** offering 3 options:
+    1. *Keep Swrite Version* (Overwrite disk).
+    2. *Accept Disk Version* (Reload disk into editor, discarding unsaved memory changes).
+    3. *Save Both* (Write memory buffer to `Filename (Swrite Conflict).md`).
+- **Consequences**: No silent data overwrites; painless coexistence with external IDEs, git operations, and cloud sync clients.
+
+---
+
+### ADR-011: Atomic Persistence & Crash Recovery Protocol
+- **Context**: Power loss, OS crashes, or disk full conditions during write operations cause devastating 0-byte file truncations.
+- **Decision**:
+  - **Atomic Save Protocol**:
+    1. Write content to temporary sibling file `.filename.tmp.<uuid>` on the same filesystem volume.
+    2. Execute `fsync` to guarantee physical disk flush.
+    3. Atomic rename/replace over destination file.
+  - **Write-Ahead Recovery Buffer**: In-progress typing is debounced to `.swrite/recovery/<doc_id>.draft` every 3 seconds.
+  - Upon startup after an unexpected crash, Swrite detects recovery drafts and prompts for one-click restoration.
+- **Consequences**: Mathematically eliminates corrupted 0-byte files; guarantees zero data loss across crashes.
+
+---
+
+### ADR-012: DOCX Degradation, Shunn Formatting, & Macro Stripping
+- **Context**: Microsoft Word `.docx` documents contain complex styling, tables, shapes, VBA macros, and proprietary markup that cannot map cleanly to literary prose.
+- **Decision**:
+  - **Import Policy**: Strict semantic mapping to AST. Strip all VBA macros, shapes, embedded objects, and inline font overrides. Preserve headings, italics, bold, blockquotes, and scene breaks. Return an informational `ImportWarning` report if elements are degraded.
+  - **Export Policy**: Emit clean OpenXML documents conforming to standard **Shunn Manuscript Format** (1-inch margins, 12pt Times New Roman / Courier, double spaced, header with surname/slug/page number).
+- **Consequences**: Safe, reliable DOCX interchange for literary submission without security vulnerabilities or markup pollution.
+
+---
+
+### ADR-013: Ephemeral Derived Search Index
+- **Context**: Persistent SQLite or binary search indexes bloat project folders, become corrupted on external edits, and require complex synchronization logic.
+- **Decision**:
+  - Swrite's full-text search index is an **in-memory ephemeral index** managed by Rust Core.
+  - Built asynchronously on project open from disk files in under 200ms for a 120,000-word novel.
+  - Dynamically updated on file save / watcher events.
+- **Consequences**: Zero stale index bugs, zero index file bloat, perfect sync with disk.
+
+---
+
+### ADR-014: Autonomous Project Portability & Self-Healing
+- **Context**: If a user zips their project folder and sends it to another machine without `.swrite/` or with broken permissions, the project must not fail to open.
+- **Decision**:
+  - A project directory containing `Manuscript/` is always a valid Swrite project.
+  - If `.swrite/` is missing, corrupted, or incompatible, Swrite silently and automatically reconstructs `.swrite/project.json` by scanning `Manuscript/`, `Planning/`, and `Desk/`.
+  - File paths use forward slashes (`/`) internally to guarantee full cross-platform compatibility across Linux, macOS, and Windows.
+- **Consequences**: Total project resilience, effortless git version control, and universal portable backups.
+
+---
+
+### ADR-015: Tauri Filesystem Security & Path Traversal Guard
+- **Context**: Native desktop apps with webview frontends must protect against arbitrary filesystem traversal vulnerabilities (e.g. `../../etc/passwd`).
+- **Decision**:
+  - All Tauri IPC commands accept relative paths scoped strictly to the active `ProjectRoot`.
+  - Rust Core validates every incoming path with canonical path resolution (`fs::canonicalize`). Any path resolving outside `ProjectRoot` immediately errors with `SecurityViolation::PathTraversalBlocked`.
+  - Direct absolute path access from frontend is completely rejected.
+- **Consequences**: Webview layer has zero capability to touch files outside the explicit project directory.
+
+---
+
+### ADR-016: Non-Destructive Schema Versioning & Forward Compatibility
+- **Context**: Future Swrite versions will introduce new metadata fields without breaking backwards compatibility with older project files.
+- **Decision**:
+  - Every `.swrite/*.json` file includes a mandatory `schemaVersion: number` (current: `1`).
+  - Serializers use non-destructive parsing (ignore unknown fields during deserialization and preserve them on write-back).
+  - Explicit migration routines are registered in Rust Core for forward version upgrades.
+- **Consequences**: Projects can be opened across different versions of Swrite without data corruption or loss of unknown future fields.
+
+---
+
+### ADR-017: Publication Engine Isolation from Editor UI Themes
+- **Context**: Dark mode, custom font sizes, or colorful editor syntax themes should never accidentally alter compiled manuscript exports.
+- **Decision**:
+  - The **PUBLISH** environment uses dedicated, standalone publication stylesheets and geometry configurations (6×9 Paperback, Letter, A5, Shunn Manuscript, EPUB3) that are completely isolated from the editor's screen theme.
+- **Consequences**: An author can write in a distraction-free high-contrast theme while exporting a typography-perfect print paperback.
+
+---
+
+### ADR-018: Absolute Exclusion of AI, Cloud Synchronizers, and Network Runtime
+- **Context**: Third-party AI APIs and mandatory cloud synchronization introduce network latency, telemetry, privacy leaks, recurring subscription lock-in, and operational fragility.
+- **Decision**: Swrite 2 has **zero AI dependencies**, **zero cloud servers**, and **zero network telemetry**. The application is 100% local-first and works entirely offline.
+- **Consequences**: Instantaneous speed, complete data sovereignty, zero telemetry, and permanent archival durability.
