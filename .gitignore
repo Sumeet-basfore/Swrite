@@ -20,6 +20,8 @@ tmp/
 
 # Local audit and scratch artifacts
 scratch/
+test-results/
+playwright-report/
 
 # Editor metadata
 .vscode/

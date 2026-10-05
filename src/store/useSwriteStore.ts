@@ -565,6 +565,14 @@ export function useSwriteStore(): SwriteState {
 
     setActiveChapterId: (id) => {
       activeChapterId = id;
+      const targetCh = globalState.acts.flatMap(a => a.chapters).find(c => c.id === id);
+      if (targetCh && targetCh.scenes && targetCh.scenes.length > 0) {
+        if (!targetCh.scenes.some(s => s.id === activeSceneId)) {
+          activeSceneId = targetCh.scenes[0].id;
+        }
+      } else {
+        activeSceneId = null;
+      }
       emitChange();
     },
 
@@ -629,7 +637,7 @@ export function useSwriteStore(): SwriteState {
         actTitle = act.title;
         const targetScene = sceneId
           ? chapter.scenes?.find(scene => scene.id === sceneId)
-          : chapter.scenes?.find(scene => scene.id === activeSceneId);
+          : (chapter.scenes?.find(scene => scene.id === activeSceneId) || chapter.scenes?.[0]);
         if (targetScene) {
           globalState = StoryEngine.updateScene(globalState, targetScene.id, { content, wordCount });
           targetChapter = globalState.acts.flatMap(a => a.chapters).find(ch => ch.id === id) || null;

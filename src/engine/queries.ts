@@ -584,7 +584,8 @@ export const StoryEngineQueries = {
         const isChapterExplicit = (ch.characterIds || []).includes(characterId) || matchingScenes.length > 0;
         
         // Also check prose / wikilinks if characterName is provided
-        const proseMatch = lowerName ? (ch.content.toLowerCase().includes(lowerName) || ch.content.toLowerCase().includes(`[[${lowerName}]]`)) : false;
+        const chapterProse = (ch.content || '') + ' ' + scenesInChapter.map(s => s.content || '').join(' ');
+        const proseMatch = lowerName ? (chapterProse.toLowerCase().includes(lowerName) || chapterProse.toLowerCase().includes(`[[${lowerName}]]`)) : false;
         
         const isPresent = isPovInChapter || isChapterExplicit || Boolean(proseMatch);
 

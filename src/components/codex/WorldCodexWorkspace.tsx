@@ -79,7 +79,7 @@ export const WorldCodexWorkspace: React.FC = () => {
 
   const filteredEntries = codexList.filter(entry => {
     if (selectedCategory !== 'all' && entry.category !== selectedCategory) return false;
-    if (searchTerm && !entry.name.toLowerCase().includes(searchTerm.toLowerCase()) && !entry.summary.toLowerCase().includes(searchTerm.toLowerCase())) {
+    if (searchTerm && !(entry.name || '').toLowerCase().includes(searchTerm.toLowerCase()) && !(entry.summary || '').toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
     return true;
@@ -90,7 +90,7 @@ export const WorldCodexWorkspace: React.FC = () => {
   // Resolve matching domain Character if category is 'character'
   let matchedChar: Character | undefined = undefined;
   if (selectedEntry && selectedEntry.category === 'character') {
-    matchedChar = project.characters.find(c => c.id === selectedEntry.id || c.name.toLowerCase() === selectedEntry.name.toLowerCase());
+    matchedChar = (project.characters || []).find(c => c.id === selectedEntry.id || (c.name && selectedEntry.name && c.name.toLowerCase() === selectedEntry.name.toLowerCase()));
   }
 
   const handleCreateNew = () => {
@@ -1159,7 +1159,7 @@ export const WorldCodexWorkspace: React.FC = () => {
                           </div>
 
                           <p className="text-xs text-zinc-200 leading-relaxed font-medium">
-                            {k.statement || k.information}
+                            {typeof (k.statement || k.information) === 'string' ? (k.statement || k.information) : ((k as any).fact || String(k.statement || k.information || ''))}
                           </p>
                         </div>
 
@@ -1216,7 +1216,7 @@ export const WorldCodexWorkspace: React.FC = () => {
                           className="w-full bg-black border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-200 outline-none"
                         >
                           <option value="">Select Character...</option>
-                          {project.characters.filter(c => c.id !== matchedChar?.id).map(c => (
+                          {(project.characters || []).filter(c => c.id !== matchedChar?.id).map(c => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                           ))}
                         </select>
@@ -1501,7 +1501,7 @@ export const WorldCodexWorkspace: React.FC = () => {
                         className="w-full bg-black border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-200 outline-none"
                       >
                         <option value="">Select Scene...</option>
-                        {project.acts.flatMap(a => a.chapters.flatMap(ch => (ch.scenes || []).map(s => ({ scene: s, ch })))).map(({ scene, ch }) => (
+                        {(project.acts || []).flatMap(a => (a.chapters || []).flatMap(ch => (ch.scenes || []).map(s => ({ scene: s, ch })))).map(({ scene, ch }) => (
                           <option key={scene.id} value={scene.id}>
                             {ch.title} - {scene.title}
                           </option>

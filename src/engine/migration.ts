@@ -44,9 +44,25 @@ export function migrateProjectToStoryEngine(project: ProjectData): ProjectData {
       goals: Array.isArray(c.goals) ? c.goals : (c.motivations ? [c.motivations] : []),
       beliefs: Array.isArray(c.beliefs) ? c.beliefs : [],
       knowledgeList: Array.isArray(c.knowledgeList) 
-        ? c.knowledgeList 
+        ? c.knowledgeList.map((k, idx) => typeof k === 'object' && k !== null ? {
+            id: k.id || `know-${idx + 1}`,
+            statement: typeof k.statement === 'string' ? k.statement : (typeof k.information === 'string' ? k.information : (typeof (k as any).fact === 'string' ? (k as any).fact : String(k))),
+            information: typeof k.information === 'string' ? k.information : (typeof k.statement === 'string' ? k.statement : (typeof (k as any).fact === 'string' ? (k as any).fact : String(k))),
+            certainty: k.certainty || 'certain',
+            status: k.status || 'known',
+            learnedAt: k.learnedAt || (k as any).acquiredInSceneId,
+            source: k.source
+          } : { id: `know-${idx + 1}`, statement: String(k), information: String(k), certainty: 'certain' as const, status: 'known' as const })
         : (Array.isArray(c.knowledge) 
-            ? c.knowledge.map((k, idx) => ({ id: `know-${idx + 1}`, statement: k, information: k, certainty: 'certain' as const, status: 'known' as const })) 
+            ? c.knowledge.map((k, idx) => typeof k === 'object' && k !== null ? {
+                id: (k as any).id || `know-${idx + 1}`,
+                statement: typeof (k as any).statement === 'string' ? (k as any).statement : (typeof (k as any).information === 'string' ? (k as any).information : (typeof (k as any).fact === 'string' ? (k as any).fact : String(k))),
+                information: typeof (k as any).information === 'string' ? (k as any).information : (typeof (k as any).statement === 'string' ? (k as any).statement : (typeof (k as any).fact === 'string' ? (k as any).fact : String(k))),
+                certainty: (k as any).certainty || 'certain',
+                status: (k as any).status || 'known',
+                learnedAt: (k as any).learnedAt || (k as any).acquiredInSceneId,
+                source: (k as any).source
+              } : { id: `know-${idx + 1}`, statement: String(k), information: String(k), certainty: 'certain' as const, status: 'known' as const }) 
             : []),
       knowledge: Array.isArray(c.knowledge) ? c.knowledge : [],
       secrets: Array.isArray(c.secrets) 

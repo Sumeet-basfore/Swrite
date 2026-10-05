@@ -151,6 +151,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCommandPalette }) =>
           <div className="relative">
             <button
               onClick={() => setShowMoreMenu(!showMoreMenu)}
+              title="More Workspaces"
+              data-testid="workspace-more-btn"
               className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center space-x-1 ${
                 isStoryActive || isTimelineActive || isGraphActive
                   ? 'bg-zinc-800 text-zinc-100 font-semibold'
@@ -173,24 +175,39 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCommandPalette }) =>
                 </div>
 
                 <button
-                  onClick={() => setActiveTab('codex')}
-                  className="w-full text-left px-2.5 py-1.5 rounded flex items-center space-x-2 hover:bg-zinc-800 transition-colors"
+                  data-testid="nav-story-bible"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTab('codex');
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded flex items-center space-x-2 hover:bg-zinc-800 transition-colors cursor-pointer"
                 >
                   <Users className="w-3.5 h-3.5 text-indigo-400" />
                   <span>Story Bible & Cast</span>
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('timeline')}
-                  className="w-full text-left px-2.5 py-1.5 rounded flex items-center space-x-2 hover:bg-zinc-800 transition-colors"
+                  data-testid="nav-timeline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTab('timeline');
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded flex items-center space-x-2 hover:bg-zinc-800 transition-colors cursor-pointer"
                 >
                   <Clock className="w-3.5 h-3.5 text-sky-400" />
                   <span>Story Timeline</span>
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('graph')}
-                  className="w-full text-left px-2.5 py-1.5 rounded flex items-center space-x-2 hover:bg-zinc-800 transition-colors"
+                  data-testid="nav-graph"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTab('graph');
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded flex items-center space-x-2 hover:bg-zinc-800 transition-colors cursor-pointer"
                 >
                   <Network className="w-3.5 h-3.5 text-purple-400" />
                   <span>Universe Graph</span>
@@ -199,8 +216,12 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCommandPalette }) =>
                 <div className="h-[1px] bg-zinc-800 my-1" />
 
                 <button
-                  onClick={() => setCompilerModalOpen(true)}
-                  className="w-full text-left px-2.5 py-1.5 rounded flex items-center space-x-2 hover:bg-zinc-800 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCompilerModalOpen(true);
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded flex items-center space-x-2 hover:bg-zinc-800 transition-colors cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Publication Studio</span>
