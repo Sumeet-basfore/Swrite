@@ -1,0 +1,20 @@
+# Rust & Cargo
+/src-tauri/target/
+/src-tauri/Cargo.lock
+
+# Node & Frontend
+/node_modules/
+/dist/
+/.vite/
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.vscode/
+.idea/
+
+# Test outputs
+/test-results/
+/playwright-report/
