@@ -1,6 +1,7 @@
 /**
  * SWRITE — Continuous Incremental Intelligence Engine
- * Orchestrates background incremental indexing, scoped delta analysis,
+ * Orchestrates Deep Organization and Continuous Maintenance analysis modes,
+ * noise suppression, intelligent proposal batching, evidence hash anti-alerting,
  * Organization Inbox state management, cross-project async cancellation guards,
  * and reversible proposal application.
  */
@@ -8,15 +9,18 @@
 import { ProjectData } from '../../types';
 import { 
   ProjectIntelligenceIndex, 
+  ProjectIntelligenceBaseline,
   IncrementalChangeDelta, 
   OrganizationInboxItem, 
+  BatchedInboxGroup,
   ContextualSuggestion, 
   InboxFilterCategory, 
   InboxItemStatus, 
   IntelligenceStatus,
   IntelligenceAnalysisOptions,
   OrganizationModelProvider,
-  OrganizationProposal
+  OrganizationProposal,
+  ContextualActionType
 } from '../../types/intelligence';
 import { ProjectIntelligenceIndexer } from './indexer';
 import { DeterministicLocalProvider } from './provider';
@@ -28,6 +32,7 @@ export class IncrementalIntelligenceEngine {
   private activeProjectId: string | null = null;
   private currentAnalysisToken: number = 0;
   private provider: OrganizationModelProvider;
+  private isAnalyzing: boolean = false;
 
   constructor(provider?: OrganizationModelProvider) {
     this.provider = provider || new DeterministicLocalProvider();
@@ -40,6 +45,7 @@ export class IncrementalIntelligenceEngine {
     if (this.activeProjectId !== projectId) {
       this.activeProjectId = projectId;
       this.currentAnalysisToken++;
+      this.isAnalyzing = false;
     }
   }
 
@@ -51,23 +57,98 @@ export class IncrementalIntelligenceEngine {
   }
 
   /**
-   * Gets the overall intelligence status for a project
+   * Gets the factual editorial intelligence status for a project
    */
   getStatus(projectId: string): IntelligenceStatus {
+    if (this.isAnalyzing) return 'analyzing';
+    if (!this.provider.isAvailable()) return 'analysis-unavailable';
+
     const index = this.indices.get(projectId);
     if (!index) return 'up-to-date';
-    if (index.dirtyDocumentIds.length > 0) return 'changes-detected';
     
-    const items = this.inboxStore.get(projectId) || [];
-    const pendingItems = items.filter(i => i.status === 'pending');
-    if (pendingItems.some(i => i.proposal.conflictsWithCanon)) return 'conflict-detected';
-    if (pendingItems.length > 0) return 'needs-review';
+    const items = (this.inboxStore.get(projectId) || []).filter(i => i.status === 'pending');
+    if (items.some(i => i.proposal.conflictsWithCanon)) return 'conflict-detected';
+    if (items.length > 0) return 'review-available';
     
     return 'up-to-date';
   }
 
   /**
-   * Runs an incremental change detection and scoped intelligence analysis
+   * Deep Organization Mode: Whole-project analysis pass triggered by explicit author action.
+   * Establishes/updates the ProjectIntelligenceBaseline.
+   */
+  async analyzeDeep(
+    project: ProjectData,
+    options?: IntelligenceAnalysisOptions
+  ): Promise<{
+    index: ProjectIntelligenceIndex;
+    newInboxItems: OrganizationInboxItem[];
+    batchedGroups: BatchedInboxGroup[];
+    status: IntelligenceStatus;
+    usefulOrganizationRate?: number;
+    noiseRate?: number;
+    wasCancelled?: boolean;
+  }> {
+    const projectId = project.metadata?.id || 'default-project';
+    this.setActiveProject(projectId);
+    const analysisToken = this.currentAnalysisToken;
+    this.isAnalyzing = true;
+
+    try {
+      const deepOptions: IntelligenceAnalysisOptions = {
+        ...options,
+        mode: 'deep-organization'
+      };
+
+      const result = await this.provider.analyzeProject(project, deepOptions);
+
+      // Async Cancellation Guard Check
+      if (this.currentAnalysisToken !== analysisToken || this.activeProjectId !== projectId) {
+        this.isAnalyzing = false;
+        return {
+          index: this.indices.get(projectId) || ProjectIntelligenceIndexer.indexProject(project).index,
+          newInboxItems: [],
+          batchedGroups: [],
+          status: 'up-to-date',
+          wasCancelled: true
+        };
+      }
+
+      // Build baseline
+      const baseline: ProjectIntelligenceBaseline = {
+        projectId,
+        createdAt: new Date().toISOString(),
+        entityCount: (project.characters?.length || 0) + (project.locations?.length || 0),
+        canonicalHashes: {},
+        knownAliases: {}
+      };
+
+      const { index } = ProjectIntelligenceIndexer.indexProject(project);
+      index.baseline = baseline;
+
+      // Populate inbox without suppressing low-importance items during Deep Organization
+      const newInboxItems = this.processProposalsIntoInbox(projectId, result.proposals, index, false);
+
+      this.indices.set(projectId, index);
+      this.isAnalyzing = false;
+
+      return {
+        index,
+        newInboxItems,
+        batchedGroups: this.getBatchedInboxGroups(projectId),
+        status: this.getStatus(projectId),
+        usefulOrganizationRate: result.usefulOrganizationRate,
+        noiseRate: result.noiseRate
+      };
+    } catch (err) {
+      this.isAnalyzing = false;
+      throw err;
+    }
+  }
+
+  /**
+   * Continuous Maintenance Mode: Low-noise incremental change detection and scoped analysis.
+   * Suppresses low-importance observations and ignored evidence hashes.
    */
   async analyzeIncremental(
     project: ProjectData,
@@ -76,6 +157,7 @@ export class IncrementalIntelligenceEngine {
     index: ProjectIntelligenceIndex;
     delta: IncrementalChangeDelta;
     newInboxItems: OrganizationInboxItem[];
+    batchedGroups: BatchedInboxGroup[];
     suggestions: ContextualSuggestion[];
     status: IntelligenceStatus;
     wasCancelled?: boolean;
@@ -88,45 +170,104 @@ export class IncrementalIntelligenceEngine {
     const existingIndex = this.indices.get(projectId);
     const { index, delta } = ProjectIntelligenceIndexer.indexProject(project, existingIndex);
 
-    // Save updated index
     this.indices.set(projectId, index);
 
-    // If no changes, return early
+    // If no dirty items, return current state early
     if (delta.dirtyDocumentIds.length === 0 && (this.inboxStore.get(projectId) || []).length > 0) {
       return {
         index,
         delta,
         newInboxItems: [],
+        batchedGroups: this.getBatchedInboxGroups(projectId),
         suggestions: this.generateContextualSuggestions(project, projectId),
         status: this.getStatus(projectId)
       };
     }
 
-    // 2. Perform Scoped Intelligence Analysis via Provider
-    const result = await this.provider.analyzeProject(project, options);
+    this.isAnalyzing = true;
 
-    // Async Cancellation Guard Check: Verify active project hasn't changed during async operation
-    if (this.currentAnalysisToken !== analysisToken || this.activeProjectId !== projectId) {
+    try {
+      const incOptions: IntelligenceAnalysisOptions = {
+        ...options,
+        mode: 'continuous-maintenance'
+      };
+
+      // 2. Perform Scoped Intelligence Analysis via Provider
+      const result = await this.provider.analyzeProject(project, incOptions);
+
+      // Async Cancellation Guard Check
+      if (this.currentAnalysisToken !== analysisToken || this.activeProjectId !== projectId) {
+        this.isAnalyzing = false;
+        return {
+          index,
+          delta,
+          newInboxItems: [],
+          batchedGroups: [],
+          suggestions: [],
+          status: 'up-to-date',
+          wasCancelled: true
+        };
+      }
+
+      // 3. Process proposals with Anti-Noise Suppression (suppress low-importance)
+      const newInboxItems = this.processProposalsIntoInbox(projectId, result.proposals, index, true);
+
+      // Mark analyzed documents as up-to-date in index
+      delta.dirtyDocumentIds.forEach(id => {
+        if (index.contentHashes[id]) {
+          index.contentHashes[id].status = 'up-to-date';
+          index.contentHashes[id].lastAnalyzed = new Date().toISOString();
+        }
+      });
+      index.dirtyDocumentIds = [];
+
+      this.isAnalyzing = false;
+
       return {
         index,
         delta,
-        newInboxItems: [],
-        suggestions: [],
-        status: 'up-to-date',
-        wasCancelled: true
+        newInboxItems,
+        batchedGroups: this.getBatchedInboxGroups(projectId),
+        suggestions: this.generateContextualSuggestions(project, projectId),
+        status: this.getStatus(projectId)
       };
+    } catch (err) {
+      this.isAnalyzing = false;
+      throw err;
     }
+  }
 
-    // 3. Process proposals into Organization Inbox Items
+  /**
+   * Converts raw proposals into Organization Inbox items with anti-noise suppression and evidence hash checks
+   */
+  private processProposalsIntoInbox(
+    projectId: string,
+    proposals: OrganizationProposal[],
+    index: ProjectIntelligenceIndex,
+    suppressLowImportance: boolean
+  ): OrganizationInboxItem[] {
     const existingInbox = this.inboxStore.get(projectId) || [];
     const existingProposalKeys = new Set(existingInbox.map(i => `${i.proposal.domain}-${i.proposal.targetName.toLowerCase()}`));
+    const ignoredHashes = new Set(index.ignoredEvidenceHashes || []);
 
     const newInboxItems: OrganizationInboxItem[] = [];
 
-    result.proposals.forEach(prop => {
+    proposals.forEach(prop => {
+      // Noise Suppression Rule: In Continuous Maintenance, skip low importance proposals
+      if (suppressLowImportance && prop.importance === 'low') {
+        return;
+      }
+
+      // Anti-Realerting Rule: If evidence hash was previously ignored, suppress unless evidence changed
+      if (prop.evidenceHash && ignoredHashes.has(prop.evidenceHash)) {
+        return;
+      }
+
       const propKey = `${prop.domain}-${prop.targetName.toLowerCase()}`;
       if (!existingProposalKeys.has(propKey)) {
         const category = this.mapDomainToCategory(prop.domain, prop);
+        const availableActions = this.mapAvailableActions(prop);
+
         const item: OrganizationInboxItem = {
           id: `inbox-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           proposal: prop,
@@ -134,38 +275,45 @@ export class IncrementalIntelligenceEngine {
           status: 'pending',
           createdTimestamp: new Date().toISOString(),
           userFacingReason: prop.reasoning,
-          contextSnippet: prop.sourceReferences[0]?.snippet || ''
+          contextSnippet: prop.sourceReferences[0]?.snippet || '',
+          availableActions
         };
+
         newInboxItems.push(item);
         existingInbox.unshift(item);
       }
     });
 
     this.inboxStore.set(projectId, existingInbox);
-
-    // Mark analyzed documents as up-to-date in index
-    delta.dirtyDocumentIds.forEach(id => {
-      if (index.contentHashes[id]) {
-        index.contentHashes[id].status = 'up-to-date';
-        index.contentHashes[id].lastAnalyzed = new Date().toISOString();
-      }
-    });
-    index.dirtyDocumentIds = [];
     index.inboxItemIds = existingInbox.map(i => i.id);
 
-    const suggestions = this.generateContextualSuggestions(project, projectId);
-
-    return {
-      index,
-      delta,
-      newInboxItems,
-      suggestions,
-      status: this.getStatus(projectId)
-    };
+    return newInboxItems;
   }
 
   /**
-   * Map proposal domain and properties to Inbox filter category
+   * Maps proposal properties to contextual action options
+   */
+  private mapAvailableActions(proposal: OrganizationProposal): ContextualActionType[] {
+    if (proposal.duplicateCandidate) {
+      return ['merge', 'keep-separate', 'remember-later'];
+    }
+    if (proposal.conflictsWithCanon || (proposal.canonConflicts && proposal.canonConflicts.length > 0)) {
+      return ['keep-existing', 'accept-new-evidence', 'create-revision-note', 'remember-later'];
+    }
+    if (proposal.domain === 'timeline' || proposal.domain === 'event') {
+      return ['set-timeline-date', 'keep-existing', 'remember-later'];
+    }
+    if (proposal.domain === 'plotThread' || proposal.domain === 'faction' || proposal.domain === 'item') {
+      return ['update-relationship', 'keep-existing', 'ignore', 'remember-later'];
+    }
+    if (proposal.operation === 'create') {
+      return ['create', 'ignore', 'remember-later'];
+    }
+    return ['accept-new-evidence', 'ignore', 'remember-later'];
+  }
+
+  /**
+   * Maps proposal domain and properties to Inbox filter category
    */
   private mapDomainToCategory(domain: string, proposal: OrganizationProposal): InboxFilterCategory {
     if (proposal.duplicateCandidate) return 'duplicates';
@@ -182,6 +330,43 @@ export class IncrementalIntelligenceEngine {
       case 'research': return 'research';
       default: return 'all';
     }
+  }
+
+  /**
+   * Intelligent Batching: Groups related inbox items for a entity into a single BatchedInboxGroup card
+   */
+  getBatchedInboxGroups(projectId: string): BatchedInboxGroup[] {
+    const items = (this.inboxStore.get(projectId) || []).filter(i => i.status === 'pending');
+    const groupMap = new Map<string, OrganizationInboxItem[]>();
+
+    items.forEach(item => {
+      const key = `${item.proposal.domain}-${item.proposal.targetName.toLowerCase()}`;
+      const list = groupMap.get(key) || [];
+      list.push(item);
+      groupMap.set(key, list);
+    });
+
+    const groups: BatchedInboxGroup[] = [];
+
+    groupMap.forEach((itemList, key) => {
+      const first = itemList[0];
+      const hasConflict = itemList.some(i => i.proposal.conflictsWithCanon);
+      const summaryReason = itemList.length > 1
+        ? `${itemList.length} related findings for ${first.proposal.targetName} (${itemList.map(i => i.proposal.operation).join(', ')})`
+        : first.userFacingReason;
+
+      groups.push({
+        id: `group-${key}`,
+        targetName: first.proposal.targetName,
+        domain: first.proposal.domain,
+        items: itemList,
+        summaryReason,
+        hasConflict,
+        createdTimestamp: first.createdTimestamp
+      });
+    });
+
+    return groups.sort((a, b) => (b.hasConflict ? 1 : 0) - (a.hasConflict ? 1 : 0));
   }
 
   /**
@@ -202,16 +387,39 @@ export class IncrementalIntelligenceEngine {
   }
 
   /**
-   * Updates an inbox item status
+   * Updates an inbox item status (supporting explicit Remember Later and Ignore evidence hashing)
    */
   updateInboxItemStatus(projectId: string, itemId: string, newStatus: InboxItemStatus) {
     const items = this.inboxStore.get(projectId) || [];
     const target = items.find(i => i.id === itemId);
+    const index = this.indices.get(projectId);
+
     if (target) {
       target.status = newStatus;
       target.updatedTimestamp = new Date().toISOString();
-      if (newStatus === 'accepted') target.proposal.status = 'accepted';
-      if (newStatus === 'rejected') target.proposal.status = 'rejected';
+
+      if (newStatus === 'accepted') {
+        target.proposal.status = 'accepted';
+      } else if (newStatus === 'rejected') {
+        target.proposal.status = 'rejected';
+      } else if (newStatus === 'ignored') {
+        target.proposal.status = 'rejected';
+        // Record evidence hash to suppress re-alerting
+        if (index && target.proposal.evidenceHash) {
+          if (!index.ignoredEvidenceHashes) index.ignoredEvidenceHashes = [];
+          if (!index.ignoredEvidenceHashes.includes(target.proposal.evidenceHash)) {
+            index.ignoredEvidenceHashes.push(target.proposal.evidenceHash);
+          }
+        }
+      } else if (newStatus === 'remember-later') {
+        // Retain finding in inbox under remember-later, do not ignore or accept
+        if (index) {
+          if (!index.deferredItemIds) index.deferredItemIds = [];
+          if (!index.deferredItemIds.includes(target.id)) {
+            index.deferredItemIds.push(target.id);
+          }
+        }
+      }
     }
   }
 
@@ -230,7 +438,7 @@ export class IncrementalIntelligenceEngine {
       const idSet = new Set(itemIdsToApply);
       targetItems = items.filter(i => idSet.has(i.id));
     } else {
-      // Default to items marked accepted or high-confidence pending
+      // Default to items marked accepted or high-confidence non-conflicting
       targetItems = items.filter(i => i.status === 'accepted' || (i.status === 'pending' && i.proposal.confidence >= 0.8 && !i.proposal.conflictsWithCanon));
     }
 
@@ -256,7 +464,7 @@ export class IncrementalIntelligenceEngine {
   }
 
   /**
-   * Generates non-intrusive contextual suggestions for active manuscript documents
+   * Generates non-intrusive contextual suggestions strictly scoped to active manuscript view
    */
   generateContextualSuggestions(project: ProjectData, projectId: string, activeDocId?: string): ContextualSuggestion[] {
     const items = this.getInboxItems(projectId, 'all').filter(i => i.status === 'pending');
@@ -265,11 +473,14 @@ export class IncrementalIntelligenceEngine {
     items.forEach(item => {
       const prop = item.proposal;
       
-      // If active document specified, prioritize suggestions referencing this document
+      // Strict Context Scoping Rule: In active writing mode, display suggestions ONLY relevant to active document
       if (activeDocId) {
         const matchesDoc = prop.sourceReferences.some(r => r.documentId === activeDocId);
         if (!matchesDoc) return;
       }
+
+      // Suppress low-importance suggestions from active prose view
+      if (prop.importance === 'low') return;
 
       let suggestionType: ContextualSuggestion['suggestionType'] = 'new-character';
       let title = `Discovered ${prop.targetName}`;
@@ -285,12 +496,12 @@ export class IncrementalIntelligenceEngine {
         priority = 'medium';
       } else if (prop.domain === 'character') {
         suggestionType = 'new-character';
-        title = `Character Suggestion: ${prop.targetName}`;
-        priority = prop.confidence >= 0.8 ? 'medium' : 'low';
+        title = `Character Evidence: ${prop.targetName}`;
+        priority = prop.importance === 'high' ? 'medium' : 'low';
       } else if (prop.domain === 'timeline' || prop.domain === 'event') {
         suggestionType = 'timeline-event';
-        title = `Timeline Event: ${prop.targetName}`;
-        priority = 'low';
+        title = `Chronology Finding: ${prop.targetName}`;
+        priority = 'medium';
       } else if (prop.domain === 'location') {
         suggestionType = 'location-mention';
         title = `Location Mention: ${prop.targetName}`;
@@ -308,6 +519,7 @@ export class IncrementalIntelligenceEngine {
         snippet: item.contextSnippet,
         proposalId: prop.id,
         priority,
+        importance: prop.importance,
         createdAt: item.createdTimestamp
       });
     });

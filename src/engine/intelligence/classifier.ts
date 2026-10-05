@@ -12,6 +12,8 @@ import {
   ProjectIntelligenceResult 
 } from '../../types/intelligence';
 import { RawExtractedCandidate } from './extractor';
+import { computeContentHash } from './indexer';
+
 
 function computeLevenshteinDistance(a: string, b: string): number {
   const matrix: number[][] = [];
@@ -298,6 +300,24 @@ export const ProjectIntelligenceClassifier = {
       let confidenceLevel: 'high' | 'medium' | 'low' = 
         confidence >= 0.85 ? 'high' : confidence >= 0.55 ? 'medium' : 'low';
 
+      // Calculate explicit Importance (separate from Confidence!)
+      let importance: OrganizationProposal['importance'] = 'medium';
+
+      if (canonConflicts.length > 0 || duplicateCandidate || cand.domain === 'timeline') {
+        importance = 'high';
+      } else if (cand.isStaleDraft || entityNature === 'incidental' || entityNature === 'historical' || entityNature === 'research-reference') {
+        importance = 'low';
+      } else if (existing && !cand.attributes?.role && !cand.attributes?.bio && !cand.attributes?.goal) {
+        // Trivial mention of existing entity without state change
+        importance = 'low';
+      } else if (!existing && entityNature === 'active') {
+        importance = 'high';
+      }
+
+      // Generate deterministic evidenceHash to prevent re-alerting ignored items
+      const snippetStr = cand.sourceReferences[0]?.snippet || '';
+      const evidenceHash = `${cand.domain}-${cand.name.toLowerCase()}-${computeContentHash(cand.reasoning + snippetStr)}`;
+
       // Stale drafts or inferred relative timelines should always require review (medium/low)
       if (cand.isStaleDraft || cand.temporalCertainty === 'inferred') {
         if (confidenceLevel === 'high') confidenceLevel = 'medium';
@@ -319,6 +339,7 @@ export const ProjectIntelligenceClassifier = {
         targetName: cand.name,
         confidence,
         confidenceLevel,
+        importance,
         temporalCertainty: cand.temporalCertainty || (cand.domain === 'timeline' ? 'inferred' : undefined),
         entityNature,
         isStaleDraftWarning: cand.isStaleDraft,
@@ -332,7 +353,8 @@ export const ProjectIntelligenceClassifier = {
         conflictsWithCanon: canonConflicts.length > 0,
         canonConflicts: canonConflicts.length > 0 ? canonConflicts : undefined,
         duplicateCandidate,
-        status: 'pending'
+        status: 'pending',
+        evidenceHash
       };
 
       proposals.push(proposal);
@@ -344,6 +366,7 @@ export const ProjectIntelligenceClassifier = {
       act.chapters.forEach(ch => {
         const hasExplicitSceneBreakOrnament = ch.content && /(\*\s*\*\s*\*|---|#{2,3}\s+|§)/.test(ch.content);
         if (hasExplicitSceneBreakOrnament && (!ch.scenes || ch.scenes.length <= 1)) {
+          const outlineHash = `outline-split-${ch.id}-${computeContentHash(ch.content)}`;
           proposals.push({
             id: `prop-outline-break-${ch.id}`,
             domain: 'outline',
@@ -351,6 +374,7 @@ export const ProjectIntelligenceClassifier = {
             targetName: `Structured Scenes for "${ch.title}"`,
             confidence: 0.90,
             confidenceLevel: 'high',
+            importance: 'medium',
             reasoning: `Detected explicit scene break ornaments (* * *) in "${ch.title}". Proposing structured scene boundary division.`,
             sourceReferences: [{
               documentId: ch.id,
@@ -364,13 +388,22 @@ export const ProjectIntelligenceClassifier = {
               chapterId: ch.id,
               action: 'split-by-ornaments'
             },
-            status: 'pending'
+            status: 'pending',
+            evidenceHash: outlineHash
           });
           domainCounts.outline = (domainCounts.outline || 0) + 1;
           highConfidenceCount++;
         }
       });
     });
+
+    // Calculate Useful Organization Rate & Noise Rate
+    const totalCount = proposals.length || 1;
+    const usefulCount = proposals.filter(p => p.importance === 'high' || p.importance === 'medium').length;
+    const noiseCount = proposals.filter(p => p.importance === 'low').length;
+
+    const usefulOrganizationRate = Math.round((usefulCount / totalCount) * 1000) / 10;
+    const noiseRate = Math.round((noiseCount / totalCount) * 1000) / 10;
 
     return {
       projectId: project.metadata.id,
@@ -382,6 +415,9 @@ export const ProjectIntelligenceClassifier = {
       highConfidenceCount,
       canonConflictsCount,
       duplicateCandidatesCount,
+      usefulOrganizationRate,
+      noiseRate
     };
   }
 };
+

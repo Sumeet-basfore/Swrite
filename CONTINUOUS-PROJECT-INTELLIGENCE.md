@@ -110,8 +110,18 @@ export interface ContextualSuggestion {
 
 ---
 
-## 4. Empirical Verification & Test Coverage
+## 4. Operational Modes & Production Workflow
 
-- **205 Engine Unit & Benchmark Tests Passing:** Covers hashing, dirty detection, deduplication, inbox filtering, zero silent mutation, safety snapshot rollback, async cancellation, and provider failure safety.
+- **Deep Organization Pass (`analyzeDeep`):** Explicit whole-project analysis triggered via `Analyze Project`. Establishes the `ProjectIntelligenceBaseline`.
+- **Continuous Maintenance Pass (`analyzeIncremental`):** Low-noise background incremental pass. Analyzes dirty document deltas and suppresses low-importance findings during active writing.
+- **Evidence Hash Anti-Realerting (`evidenceHash`):** Ignored evidence signatures are stored in `index.ignoredEvidenceHashes`, preventing re-alerting unless underlying source evidence changes.
+- **Intelligent Group Batching (`BatchedInboxGroup`):** Grouping related inbox items by target entity to prevent notification spam.
+
+---
+
+## 5. Empirical Verification & Test Coverage
+
+- **215 Engine Unit & Benchmark Tests Passing:** Covers hashing, dirty detection, deduplication, importance scoring, anti-noise suppression, intelligent batching, ignore evidence hashing, remember-later deferral, context scoping, research isolation, cut drawer precedence, zero silent mutation, safety snapshot rollback, async cancellation, and provider failure safety.
 - **18 Playwright E2E Browser Tests Passing:** Verified across scene creation, split, reorder, keyboard safety, focus mode, and publication profiles.
-- **Clean TypeScript Build:** Verified with zero build warnings.
+- **Clean Production Build:** Verified with zero TypeScript compiler errors or Vite build warnings.
+

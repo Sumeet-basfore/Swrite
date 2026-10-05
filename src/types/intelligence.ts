@@ -38,6 +38,8 @@ export interface SourceReference {
   reason: string;
 }
 
+export type ProposalImportance = 'high' | 'medium' | 'low';
+
 export interface ProposedChange {
   field: string;
   currentValue?: any;
@@ -53,8 +55,8 @@ export interface CanonConflict {
   explanation: string;
   sourceDocumentTitle?: string;
   isStaleSourceWarning?: boolean;
-  resolutionOptions: Array<'keep-existing' | 'update-canon' | 'create-revision-note' | 'ignore'>;
-  chosenResolution?: 'keep-existing' | 'update-canon' | 'create-revision-note' | 'ignore';
+  resolutionOptions: Array<'keep-existing' | 'accept-new-evidence' | 'update-canon' | 'create-revision-note' | 'ignore'>;
+  chosenResolution?: 'keep-existing' | 'accept-new-evidence' | 'update-canon' | 'create-revision-note' | 'ignore';
 }
 
 export interface DuplicateCandidate {
@@ -79,6 +81,7 @@ export interface OrganizationProposal {
   targetName: string;
   confidence: number; // 0.0 to 1.0
   confidenceLevel: 'high' | 'medium' | 'low';
+  importance: ProposalImportance; // Explicitly separate Confidence from Importance
   temporalCertainty?: 'known' | 'inferred' | 'unknown';
   entityNature?: 'active' | 'incidental' | 'historical' | 'research-reference';
   isStaleDraftWarning?: boolean;
@@ -91,6 +94,7 @@ export interface OrganizationProposal {
   duplicateCandidate?: DuplicateCandidate;
   status: 'pending' | 'accepted' | 'rejected' | 'applied';
   appliedAt?: string;
+  evidenceHash?: string; // Content signature used to prevent re-alerting ignored items
 }
 
 export interface ProjectIntelligenceResult {
@@ -105,11 +109,15 @@ export interface ProjectIntelligenceResult {
   canonConflictsCount: number;
   duplicateCandidatesCount: number;
   safetySnapshotId?: string;
+  usefulOrganizationRate?: number;
+  noiseRate?: number;
 }
 
 export interface IntelligenceAnalysisOptions {
   provider?: 'local-deterministic' | 'local-llm' | 'cloud-llm';
   confidenceThreshold?: number;
+  importanceThreshold?: ProposalImportance;
+  mode?: 'deep-organization' | 'continuous-maintenance';
   includeTimeline?: boolean;
   includeOutlineReconstruction?: boolean;
   includeDuplicateDetection?: boolean;
@@ -126,13 +134,15 @@ export interface OrganizationModelProvider {
 
 /**
  * Continuous Intelligence Status indicator for UI and indexing
+ * Factual, editorial status terminology
  */
 export type IntelligenceStatus = 
   | 'up-to-date' 
-  | 'changes-detected' 
-  | 'analysis-pending' 
-  | 'needs-review' 
-  | 'conflict-detected';
+  | 'analyzing' 
+  | 'review-available' 
+  | 'conflict-detected' 
+  | 'analysis-unavailable'
+  | 'changes-detected';
 
 /**
  * Record tracking the content hash and dirty state of a single document/entity
@@ -148,18 +158,34 @@ export interface ContentHashRecord {
 }
 
 /**
+ * Intelligence baseline recorded after Deep Organization
+ */
+export interface ProjectIntelligenceBaseline {
+  projectId: string;
+  createdAt: string;
+  snapshotId?: string;
+  entityCount: number;
+  canonicalHashes: Record<string, string>;
+  knownAliases: Record<string, string[]>;
+}
+
+/**
  * Non-canonical intelligence index stored alongside project state or generated on demand
  */
 export interface ProjectIntelligenceIndex {
   projectId: string;
   lastFullAnalysis?: string;
   lastIncrementalAnalysis?: string;
+  baseline?: ProjectIntelligenceBaseline;
   contentHashes: Record<string, ContentHashRecord>;
   extractedEntityIds: string[];
   knownAliases: Record<string, string[]>;
   dirtyDocumentIds: string[];
   inboxItemIds: string[];
+  ignoredEvidenceHashes?: string[]; // Prevents re-alerting ignored items
+  deferredItemIds?: string[]; // Remember Later items
 }
+
 
 /**
  * Delta calculation between current project data and previous intelligence index
@@ -178,6 +204,21 @@ export type InboxItemStatus = 'pending' | 'accepted' | 'rejected' | 'ignored' | 
 export type InboxFilterCategory = 'all' | 'characters' | 'timeline' | 'outline' | 'relationships' | 'research' | 'conflicts' | 'duplicates';
 
 /**
+ * Action options tailored to specific proposal types
+ */
+export type ContextualActionType = 
+  | 'merge' 
+  | 'keep-separate' 
+  | 'create' 
+  | 'ignore' 
+  | 'keep-existing' 
+  | 'accept-new-evidence' 
+  | 'create-revision-note' 
+  | 'set-timeline-date' 
+  | 'update-relationship' 
+  | 'remember-later';
+
+/**
  * Organization Inbox item representing a single proposal under author review
  */
 export interface OrganizationInboxItem {
@@ -189,6 +230,20 @@ export interface OrganizationInboxItem {
   updatedTimestamp?: string;
   userFacingReason: string;
   contextSnippet?: string;
+  availableActions: ContextualActionType[];
+}
+
+/**
+ * Intelligent Batch Grouping related proposals into a single actionable card
+ */
+export interface BatchedInboxGroup {
+  id: string;
+  targetName: string;
+  domain: OrganizationDomain;
+  items: OrganizationInboxItem[];
+  summaryReason: string;
+  hasConflict: boolean;
+  createdTimestamp: string;
 }
 
 /**
@@ -199,12 +254,14 @@ export interface ContextualSuggestion {
   domain: OrganizationDomain;
   targetId?: string;
   targetName: string;
-  suggestionType: 'new-character' | 'alias-link' | 'location-mention' | 'timeline-event' | 'canon-conflict' | 'duplicate-warning';
+  suggestionType: 'new-character' | 'alias-link' | 'location-mention' | 'timeline-event' | 'canon-conflict' | 'duplicate-warning' | 'character-state';
   title: string;
   text: string;
   snippet?: string;
   proposalId?: string;
   priority: 'low' | 'medium' | 'high';
+  importance: ProposalImportance;
   createdAt: string;
 }
+
 
