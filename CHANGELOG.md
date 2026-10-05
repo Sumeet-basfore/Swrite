@@ -5,32 +5,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
-## [0.1.0-beta1] - 2026-10-05
+## [0.1.0] - 2026-10-05
 
-### Initial Public Beta Release
+### Official Stable Release
 
-Swrite is a local-first authoring environment designed for novelists and storytellers, connecting prose drafting with structural planning, unified editorial review, non-destructive version history, and publication-ready formatting.
+Swrite `v0.1.0` is the first official stable release of the local-first authoring environment engineered for novelists, plotters, and serious storytellers.
 
 #### 🖋️ Write Workspace (`⌘1`)
+- **Focused Drafting Canvas**: Clean continuous scroll flow and live paginated (6"×9") trade paperback view with alternating running top headers and bottom page numbers.
 - **Smart Novel Formatting**: Automatic first-line paragraph indentation (`1.5em`), centered ornament scene breaks (`* * *`, `❦`, `◆ ◆ ◆`), and typewriter scrolling.
-- **Dual Flow Modes**: Distraction-free continuous scroll drafting and live paginated (6"×9") trade paperback preview with alternating running headers.
 - **Distraction-Free Focus Mode (`F11` / `Esc`)**: Fullscreen drafting canvas with minimal floating scene title overlay and word counter.
-- **Contextual Margin Inspector**: Inspect and edit live character emotional/physical state, active beliefs, dramatic scene goals, and plot thread attachments without leaving prose flow.
+- **Contextual Margin Inspector**: Live in-margin inspection and editing of character emotional/physical states, active beliefs, dramatic scene goals, and plot thread attachments without leaving the prose.
 
 #### 🗺️ Plan Workspace (`⌘2`)
-- **Manuscript Outliner & Matrix**: Hierarchical Act $\to$ Chapter $\to$ Scene outliner with point-of-view tracking, word count aggregates, and drag-and-drop reordering.
-- **Corkboard View**: Card-based visual scene board for organizing narrative pacing and dramatic beats.
+- **Manuscript Outliner & Matrix**: Hierarchical Act $\to$ Chapter $\to$ Scene breakdown with POV tracking, scene summaries, word count aggregates, and drag-and-drop reordering.
+- **Corkboard View**: Card-based visual scene board for organizing narrative pacing and dramatic structural arcs.
 - **Dual-Stream Timeline**: In-universe chronological timeline separate from narrative reading order, with inline classification pills (`Present`, `Flashback`, `Flashforward`, `Memory`, `Backstory`) and quick timestamp anchors.
 - **Story Codex & Universe Graph**: Relational database for characters, locations, factions, and dynamic relationship webs.
 
 #### 🔍 Review Workspace (`⌘3`)
 - **Unified Review Queue**: Consolidated triage stream uniting mechanical proofreading (typos, grammar, style, character casing), continuity audit warnings (knowledge leaks, causality inversions), and manual revision notes.
-- **Single-Key Editorial Triage**: High-speed keyboard actions:
-  - `[A]` Accept proofreading suggestion
-  - `[I]` Ignore finding / dismiss warning
-  - `[R]` Resolve revision item / convert continuity warning
-  - `[↵]` Jump directly to flagged scene in editor
-  - `[J] / [K]` Navigate down / up review queue
+- **Single-Key Editorial Triage**: High-speed keyboard actions (`[A]` Accept, `[I]` Ignore, `[R]` Resolve/Convert, `[↵]` Open Scene in Editor, `[J] / [K]` Navigate).
 
 #### 🕰️ Version History & Safety Recovery
 - **Non-Destructive Snapshots**: Automatic and manual snapshot points with tamper verification and literary change metrics.
@@ -40,11 +35,11 @@ Swrite is a local-first authoring environment designed for novelists and storyte
 #### 📖 Publication Studio
 - **Multi-Profile Book Compiler**: Strict separation of editor appearance from publication typography.
 - **Export Profiles**:
-  - **Trade Paperback (6"×9" & 5.5"×8.5")**: High-resolution print-ready PDF with mirrored gutters, running headers, and page numbers.
+  - **Trade Paperback (6"×9" & 5.5"×8.5")**: High-resolution print-ready PDF with running headers, footers, and page numbers.
   - **Standard Manuscript Format (Shunn DOCX)**: 1" margins, Courier 12pt, double-spaced format for literary agents and editors.
   - **EPUB 3**: Standards-compliant e-book package for e-readers and Kindle Direct Publishing (KDP).
   - **CommonMark Markdown**: Clean `.md` export with YAML front matter.
-- **Preflight Inspection**: Automated pre-export checks catching default titles, empty chapters, and layout errors.
+- **Preflight Inspection**: Automated pre-export checks catching default titles, unready chapters, and layout errors.
 
 #### 🛡️ Local-First & Privacy Guarantees
 - All manuscripts and story data persist locally in browser IndexedDB/LocalStorage.
@@ -53,7 +48,7 @@ Swrite is a local-first authoring environment designed for novelists and storyte
 
 ---
 
-### 📬 Public Feedback & Support Channels
-- **Bug Reports & Issues:** File reports categorized under `[Bug]`, `[Workflow]`, `[Feature Request]`, or `[Question]`.
-- **Issue Registry:** Tracked in [`PUBLIC-BETA-ISSUES.md`](./PUBLIC-BETA-ISSUES.md).
-- **Post-Beta Backlog:** Tracked in [`POST-BETA-BACKLOG.md`](./POST-BETA-BACKLOG.md).
+## [0.1.0-beta1] - 2026-10-05
+
+### Beta Distribution & 30-Day Adoption Validation
+- Public beta release evaluating activation, longitudinal retention, and multi-format import/export fidelity across 85 active independent novelists.

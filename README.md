@@ -1,61 +1,51 @@
 # Swrite — Novelist & Author Studio
 
-**Status:** Release Candidate (Feature Frozen)  
+**Version:** `v0.1.0` (Official Stable Release)  
 **Branch:** `chore/swrite-repository-baseline`  
 **License:** Private / Proprietary  
 
-Swrite is a local-first, distraction-free authoring environment engineered for novelists and serious storytellers. It connects uninterrupted prose drafting with deep structural story planning, automated editorial review, version history recovery, and professional publication formatting.
+Swrite is a local-first, distraction-free authoring environment engineered specifically for novelists, plotters, and serious storytellers. It connects uninterrupted prose drafting directly with structural planning, unified editorial review, non-destructive version history, and professional publication formatting.
 
 ---
 
-## 🔒 Feature Freeze Notice
+## 🧭 The Core Authoring Loop
 
-This repository baseline is under a **strict Release Candidate Feature Freeze**:
-- **Allowed:** Bug fixes, security/persistence hardening, performance improvements, accessibility, and documentation.
-- **Not Allowed:** New major features, new workspaces, redesigns, speculative UI, or simulation mechanics.
-- **Experimental Boundary:** The World Simulation engine remains isolated on `experiment/world-simulation` and is not part of the core stable release candidate.
-
----
-
-## 🧭 The Core Authoring Journey
-
-Swrite organizes the long-form writing process into five streamlined stages:
+Swrite unifies the entire novel-writing lifecycle into five streamlined, keyboard-accessible stages:
 
 $$\textbf{Write} \longrightarrow \textbf{Plan} \longrightarrow \textbf{Review} \longrightarrow \textbf{Revise} \longrightarrow \textbf{Publish}$$
 
-### 1. Write (`⌘1`)
-- **Focused Drafting**: Distraction-free text engine with continuous scroll and live paginated (6"×9") book views.
-- **Smart Novel Formatting**: Automatic paragraph indentation (`1.5em`), ornament scene breaks (`* * *`, `❦`, `◆ ◆ ◆`), and typewriter scrolling.
-- **Focus Mode (`F11` / `Esc`)**: Fullscreen, zero-chrome writing with word counts and scene title overlays.
-- **Contextual Margin Inspector**: Inspect scene dramatic goals, live character emotional/physical state, linked plot threads, and continuity alerts without switching views.
+### 1. Write (`⌘1` / `Ctrl+1`)
+- **Focused Drafting**: Clean text engine supporting continuous scroll and live paginated (6"×9") trade paperback views with alternating running headers.
+- **Smart Novel Formatting**: Automatic first-line paragraph indentation (`1.5em`), centered ornament scene breaks (`* * *`, `❦`, `◆ ◆ ◆`), and typewriter scrolling.
+- **Distraction-Free Focus Mode (`F11` / `Esc`)**: Fullscreen, zero-chrome writing with minimal floating title overlay and word counter.
+- **Contextual Margin Inspector**: Inspect and edit live character emotional/physical state, active beliefs, dramatic scene goals, and linked plot threads right beside the prose without switching views.
 
-### 2. Plan (`⌘2`)
-- **Manuscript Outliner & Matrix**: Hierarchical Act $\to$ Chapter $\to$ Scene breakdown with POV tracking, scene summaries, and word counts.
-- **Corkboard & Beats**: Visual card board for organizing narrative pacing and structural story arcs.
-- **Timeline & Chronology**: Dual-track timeline separating narrative reading order from in-universe chronology with inline timestamp editing.
-- **Codex & Universe Graph**: Relational database of characters, locations, factions, and dynamic relationship webs.
+### 2. Plan (`⌘2` / `Ctrl+2`)
+- **Manuscript Outliner & Matrix**: Hierarchical Act $\to$ Chapter $\to$ Scene breakdown with POV tracking, scene summaries, and word count aggregation.
+- **Corkboard & Beats**: Visual card board for organizing narrative pacing and dramatic structural arcs.
+- **Dual-Stream Timeline**: In-universe historical chronology separate from narrative reading order, featuring inline classification pills (`Present`, `Flashback`, `Flashforward`, `Memory`, `Backstory`) and quick timestamp anchors.
+- **Story Codex & Universe Graph**: Relational database of characters, locations, factions, and dynamic relationship webs.
 
-### 3. Review (`⌘3`)
-- **Unified Editorial Queue**: Consolidated triage stream combining automated proofreading, manual revision items, and continuity audit warnings.
-- **High-Speed Keyboard Triage**: Single-key actions:
+### 3. Review (`⌘3` / `Ctrl+3`)
+- **Unified Editorial Queue**: Consolidated triage stream combining automated proofreading (spelling, grammar, dialogue styling, entity casing), story continuity warnings (knowledge leaks, deceased character appearances, timeline inversions), and manual revision notes.
+- **Single-Key Editorial Triage**:
   - `[A]` Accept proofreading suggestion
   - `[I]` Ignore finding / dismiss warning
   - `[R]` Resolve revision item / convert continuity warning
-  - `[↵]` Open scene in editor
-  - `[J] / [K]` Navigate down / up queue
+  - `[↵]` Jump directly to flagged scene in editor
+  - `[J] / [K]` Navigate down / up review queue
 
 ### 4. Revise
-- **Non-Destructive Snapshots**: Automatic and manual snapshot points with tamper detection and literary change summaries.
-- **Calm Editorial Diffing**: Paragraph-level comparisons (Inline and Side-by-Side) with granular word-level diffing.
-- **Guaranteed Safety Recovery**: Granular chapter or full-manuscript restoration with automatic pre-restore safety snapshots.
+- **Non-Destructive Snapshots**: Automatic and manual snapshot points with tamper verification and literary change metrics.
+- **Calm Editorial Diffing**: Paragraph-level comparisons (Inline and Side-by-Side) with granular word-level change highlights.
+- **Guaranteed Safe Recovery**: Granular single-chapter or full-manuscript restoration with automatic pre-restore safety snapshots.
 
 ### 5. Publish
 - **Publication Studio**: Multi-profile book compiler with strict separation of editor appearance from publication typography.
-- **Export Formats**:
-  - **Trade Paperback (6"×9" & 5.5"×8.5")**: High-resolution print-ready PDF with running headers and page numbers.
-  - **Standard Manuscript Format (Shunn)**: Industry-standard 1" margins, double-spaced typography for literary agents and editors.
-  - **Classic Hardcover & Digest Paperback**: Custom trim geometry and margin structures.
-  - **EPUB 3**: Standards-compliant, uncompressed-mimetype e-book package for e-readers and KDP.
+- **Export Profiles**:
+  - **Trade Paperback (6"×9" & 5.5"×8.5")**: High-resolution print-ready PDF with running headers, footers, and page numbers.
+  - **Standard Manuscript Format (Shunn DOCX)**: 1" margins, Courier 12pt, double-spaced format for literary agents and editors.
+  - **EPUB 3**: Standards-compliant, uncompressed-mimetype e-book package for e-readers and Kindle Direct Publishing (KDP).
   - **CommonMark**: Clean markdown manuscript export with YAML front matter.
 - **Preflight Inspection**: Automated pre-export checks catching default titles, unready chapters, and layout errors.
 
@@ -77,11 +67,14 @@ $$\textbf{Write} \longrightarrow \textbf{Plan} \longrightarrow \textbf{Review} \
 
 ---
 
-## 🛠️ Architecture & Local-First Principles
+## 🛡️ Architecture & Local-First Privacy
 
-- **Local-First & Offline**: All manuscript data, character codices, snapshots, and revision rounds are persisted locally in browser IndexedDB/LocalStorage.
-- **Zero Lock-In**: Complete project import and export in human-readable JSON, Markdown, DOCX, and EPUB.
-- **Isolated Extension Boundary**: Optional experimental features (like World Simulation) reside on separate branches and communicate strictly via read-only project snapshot interfaces.
+- **Local-First & Offline**: All manuscript text, character profiles, snapshots, and revision rounds are stored purely locally in browser IndexedDB/LocalStorage.
+- **Zero Telemetry on Manuscript Prose**: No manuscript content or private story notes are ever transmitted to remote servers.
+- **Optional AI Infrastructure**: Bring-Your-Own-Key (BYOK) direct client-to-endpoint integration without intermediary proxies.
+- **Modular Boundaries**: Experimental extensions (e.g. World Simulation) remain strictly isolated on `experiment/world-simulation` and are excluded from stable releases.
+
+See [`PRIVACY-ARCHITECTURE.md`](./PRIVACY-ARCHITECTURE.md) for full architectural documentation.
 
 ---
 
@@ -107,9 +100,12 @@ npm run build
 
 ---
 
-## 📦 Release Candidate Validation
+## 📚 Documentation & Roadmap
 
-- **Unit Test Coverage:** 154 / 154 tests passing (100%)
-- **Browser E2E Coverage:** 18 / 18 Playwright end-to-end scenarios passing (100%)
-- **Production Bundle:** Clean build with TypeScript strict compilation passing.
-- **Artifacts:** See [`RELEASE-CANDIDATE-REPORT.md`](./RELEASE-CANDIDATE-REPORT.md) for the full validation matrix and release recommendation.
+- **Release Report:** [`RELEASE-REPORT.md`](./RELEASE-REPORT.md)
+- **Privacy Architecture:** [`PRIVACY-ARCHITECTURE.md`](./PRIVACY-ARCHITECTURE.md)
+- **Changelog:** [`CHANGELOG.md`](./CHANGELOG.md)
+- **Contributing Guide:** [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- **v0.2 Roadmap:** [`V0.2-ROADMAP.md`](./V0.2-ROADMAP.md)
+- **Cloud Sync Architecture (v0.2 Spike):** [`CLOUD-SYNC-ARCHITECTURE.md`](./CLOUD-SYNC-ARCHITECTURE.md)
+- **Mobile Drafting Architecture (v0.2 Spike):** [`MOBILE-ARCHITECTURE.md`](./MOBILE-ARCHITECTURE.md)
