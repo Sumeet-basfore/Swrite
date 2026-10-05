@@ -15,6 +15,13 @@ import {
   OutlinePlanningData,
   ItemPlanningMeta,
   MoodboardData,
+  CommentsData,
+  Comment,
+  RevisionsData,
+  RevisionNote,
+  ProjectDictionary,
+  ProofreadingFinding,
+  DocumentDiffResult,
 } from '../types/ipc';
 
 export const SwriteIpc = {
@@ -171,4 +178,64 @@ export const SwriteIpc = {
   // Reconciliation
   reconciliationInspect: (relativePath: string, baseContent?: string, userContent: string = '') =>
     invoke<ReconciliationResult>('reconciliation_inspect', { relativePath, baseContent, userContent }),
+
+  // Milestone 7 — Comments
+  commentsLoad: () =>
+    invoke<CommentsData>('comments_load'),
+
+  commentsSave: (data: CommentsData) =>
+    invoke<void>('comments_save', { data }),
+
+  commentAdd: (comment: Comment) =>
+    invoke<void>('comment_add', { comment }),
+
+  commentResolve: (commentId: string, resolved: boolean) =>
+    invoke<void>('comment_resolve', { commentId, resolved }),
+
+  commentDelete: (commentId: string) =>
+    invoke<void>('comment_delete', { commentId }),
+
+  // Milestone 7 — Revisions
+  revisionsLoad: () =>
+    invoke<RevisionsData>('revisions_load'),
+
+  revisionsSave: (data: RevisionsData) =>
+    invoke<void>('revisions_save', { data }),
+
+  revisionAdd: (revision: RevisionNote) =>
+    invoke<void>('revision_add', { revision }),
+
+  revisionUpdate: (revision: RevisionNote) =>
+    invoke<void>('revision_update', { revision }),
+
+  revisionDelete: (revisionId: string) =>
+    invoke<void>('revision_delete', { revisionId }),
+
+  // Milestone 7 — Dictionary
+  dictionaryLoad: () =>
+    invoke<ProjectDictionary>('dictionary_load'),
+
+  dictionaryAddWord: (word: string) =>
+    invoke<void>('dictionary_add_word', { word }),
+
+  dictionaryRemoveWord: (word: string) =>
+    invoke<void>('dictionary_remove_word', { word }),
+
+  dictionaryAddIgnore: (findingId: string) =>
+    invoke<void>('dictionary_add_ignore', { findingId }),
+
+  // Milestone 7 — History Diff & Safe Restore
+  historyDiffSnapshots: (documentId: string, oldSnapshotId: string, newSnapshotId: string) =>
+    invoke<DocumentDiffResult>('history_diff_snapshots', { documentId, oldSnapshotId, newSnapshotId }),
+
+  historyDiffCurrent: (documentId: string, snapshotId: string, currentContent: string) =>
+    invoke<DocumentDiffResult>('history_diff_current', { documentId, snapshotId, currentContent }),
+
+  historySafeRestore: (documentId: string, relativePath: string, snapshotId: string, currentContent: string) =>
+    invoke<string>('history_safe_restore', { documentId, relativePath, snapshotId, currentContent }),
+
+  // Milestone 7 — Proofreading
+  proofreadText: (text: string) =>
+    invoke<ProofreadingFinding[]>('proofread_text', { text }),
 };
+

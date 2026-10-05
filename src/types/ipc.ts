@@ -211,3 +211,105 @@ export interface SearchResult {
   total_matches: number;
   matches: SearchMatch[];
 }
+
+// Milestone 7 — Edit Studio Types
+
+export interface TextAnchor {
+  document_id: string;
+  relative_path: string;
+  start_offset: number;
+  end_offset: number;
+  exact_text: string;
+  prefix_context: string;
+  suffix_context: string;
+}
+
+export interface CommentReply {
+  id: string;
+  created_at: string;
+  content: string;
+}
+
+export interface Comment {
+  id: string;
+  anchor: TextAnchor;
+  created_at: string;
+  updated_at: string;
+  content: string;
+  replies: CommentReply[];
+  status: 'open' | 'resolved' | 'deleted';
+}
+
+export interface CommentsData {
+  comments: Comment[];
+}
+
+export type RevisionCategory =
+  | 'Structure'
+  | 'Plot'
+  | 'Character'
+  | 'Pacing'
+  | 'Dialogue'
+  | 'Worldbuilding'
+  | 'Continuity'
+  | 'Prose'
+  | 'Proofreading'
+  | 'General';
+
+export type RevisionSeverity = 'low' | 'medium' | 'high';
+export type RevisionStatus = 'open' | 'resolved' | 'ignored';
+
+export interface RevisionNote {
+  id: string;
+  title: string;
+  description: string;
+  category: RevisionCategory;
+  severity: RevisionSeverity;
+  status: RevisionStatus;
+  target_path?: string | null;
+  anchor?: TextAnchor | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RevisionsData {
+  revisions: RevisionNote[];
+}
+
+export interface ProjectDictionary {
+  custom_words: string[];
+  ignored_patterns: string[];
+  ignored_findings: string[];
+}
+
+export type ProofreadingSeverity = 'info' | 'warning' | 'error';
+
+export interface ProofreadingFinding {
+  id: string;
+  rule_id: string;
+  message: string;
+  severity: ProofreadingSeverity;
+  start_offset: number;
+  end_offset: number;
+  line_number: number;
+  column_number: number;
+  matched_text: string;
+  suggested_replacement?: string | null;
+}
+
+export interface DiffChunk {
+  origin: 'same' | 'added' | 'removed' | 'modified';
+  old_line_num?: number | null;
+  new_line_num?: number | null;
+  content: string;
+}
+
+export interface DocumentDiffResult {
+  old_snapshot_id?: string | null;
+  new_snapshot_id?: string | null;
+  chunks: DiffChunk[];
+  additions_count: number;
+  deletions_count: number;
+  modifications_count: number;
+}
+

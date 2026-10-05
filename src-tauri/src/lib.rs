@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod desk;
 pub mod document;
+pub mod edit;
 pub mod error;
 pub mod filesystem;
 pub mod history;
@@ -54,6 +55,24 @@ pub fn run() {
             commands::asset_import,
             commands::asset_read_base64,
             commands::desk_scan_backlinks,
+            commands::comments_load,
+            commands::comments_save,
+            commands::comment_add,
+            commands::comment_resolve,
+            commands::comment_delete,
+            commands::revisions_load,
+            commands::revisions_save,
+            commands::revision_add,
+            commands::revision_update,
+            commands::revision_delete,
+            commands::dictionary_load,
+            commands::dictionary_add_word,
+            commands::dictionary_remove_word,
+            commands::dictionary_add_ignore,
+            commands::history_diff_snapshots,
+            commands::history_diff_current,
+            commands::history_safe_restore,
+            commands::proofread_text,
             commands::recovery_save,
             commands::recovery_clear,
             commands::recovery_list,

@@ -10,6 +10,7 @@ import { NewDocumentDialog } from './NewDocumentDialog';
 import { EditorCanvas } from '../editor';
 import { PlanningStudio } from '../planning';
 import { DeskStudio, SplitDeskContainer } from '../desk';
+import { EditStudio } from '../edit';
 import { ContextMenuState, TreeNode } from './types';
 import { SwriteIpc } from '../lib/ipc';
 import './shell.css';
@@ -43,7 +44,7 @@ export const ProjectShell: React.FC = () => {
     openSearchResult,
   } = useProjectState();
 
-  const [studioMode, setStudioMode] = useState<'write' | 'plan' | 'desk'>('write');
+  const [studioMode, setStudioMode] = useState<'write' | 'plan' | 'desk' | 'edit'>('write');
   const [splitDocument, setSplitDocument] = useState<{ path: string; content: string } | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [showDevDrawer, setShowDevDrawer] = useState(false);
@@ -95,6 +96,13 @@ export const ProjectShell: React.FC = () => {
       if (isMod && !e.shiftKey && key === '3') {
         e.preventDefault();
         setStudioMode('desk');
+        return;
+      }
+
+      // Mod+4: Edit Studio
+      if (isMod && !e.shiftKey && key === '4') {
+        e.preventDefault();
+        setStudioMode('edit');
         return;
       }
 
@@ -233,6 +241,18 @@ export const ProjectShell: React.FC = () => {
               }}
               onOpenSplitFile={handleOpenSplitDocument}
               onRefreshFiles={refreshFiles}
+            />
+          ) : studioMode === 'edit' ? (
+            <EditStudio
+              currentDocumentPath={selectedFile}
+              manuscriptFiles={filesView?.manuscript_files || []}
+              onNavigateToDocument={(path, _startOffset, _endOffset) => {
+                setStudioMode('write');
+                openDocument(path);
+              }}
+              onSelectDocument={(path) => {
+                openDocument(path);
+              }}
             />
           ) : splitDocument && selectedFile ? (
             <SplitDeskContainer

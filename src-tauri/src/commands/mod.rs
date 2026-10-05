@@ -1,5 +1,6 @@
 pub mod desk;
 pub mod document;
+pub mod edit;
 pub mod file;
 pub mod history;
 pub mod planning;
@@ -11,6 +12,7 @@ pub mod watcher;
 
 pub use desk::*;
 pub use document::*;
+pub use edit::*;
 pub use file::*;
 pub use history::*;
 pub use planning::*;

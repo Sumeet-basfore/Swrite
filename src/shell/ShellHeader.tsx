@@ -12,6 +12,7 @@ import {
   Compass,
   Layout,
   Columns,
+  CheckSquare,
 } from 'lucide-react';
 
 export interface ShellHeaderProps {
@@ -19,8 +20,8 @@ export interface ShellHeaderProps {
   activePath: string | null;
   sidebarCollapsed: boolean;
   focusMode: boolean;
-  studioMode: 'write' | 'plan' | 'desk';
-  onChangeStudioMode: (mode: 'write' | 'plan' | 'desk') => void;
+  studioMode: 'write' | 'plan' | 'desk' | 'edit';
+  onChangeStudioMode: (mode: 'write' | 'plan' | 'desk' | 'edit') => void;
   isSplitOpen?: boolean;
   onToggleSplit?: () => void;
   onToggleSidebar: () => void;
@@ -114,6 +115,14 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
           >
             <Layout size={13} />
             <span>Desk</span>
+          </button>
+          <button
+            className={`mode-tab-btn ${studioMode === 'edit' ? 'active' : ''}`}
+            onClick={() => onChangeStudioMode('edit')}
+            title="Edit Studio (Ctrl+4)"
+          >
+            <CheckSquare size={13} />
+            <span>Edit</span>
           </button>
         </div>
       </div>
