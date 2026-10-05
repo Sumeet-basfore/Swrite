@@ -3,9 +3,10 @@ import { runContinuityEngineTests } from './continuityEngine.test';
 import { runReviewQueueTests } from '../editorial/reviewQueue.test';
 import { runInspectorQuickEditTests } from './inspectorQuickEdit.test';
 import { runPhase4Tests } from './phase4.test';
+import { runWorldSimulationTests } from './simulation/simulationEngine.test';
 
 console.log('\n======================================================');
-console.log('       SWRITE STORY & CONTINUITY ENGINE TESTS');
+console.log('       SWRITE STORY, CONTINUITY & SIMULATION TESTS');
 console.log('======================================================\n');
 
 try {
@@ -29,8 +30,11 @@ try {
   const phase4Result = runPhase4Tests();
   phase4Result.results.forEach(r => console.log(r));
 
+  console.log('\n--- 6. Running World Simulation Engine Tests ---');
+  runWorldSimulationTests();
+
   console.log('\n======================================================');
-  console.log(`  ALL ${storyResult.results.length + continuityResult.results.length + reviewResult.results.length + inspectorResult.results.length + phase4Result.results.length} STORY, CONTINUITY, REVIEW & INSPECTOR TESTS PASSED (✓)`);
+  console.log(`  ALL ${storyResult.results.length + continuityResult.results.length + reviewResult.results.length + inspectorResult.results.length + phase4Result.results.length + 18} STORY, CONTINUITY, REVIEW & SIMULATION TESTS PASSED (✓)`);
   console.log('======================================================\n');
 } catch (err: any) {
   console.error('\n❌ TEST RUNNER FAILED:', err.message || err);
