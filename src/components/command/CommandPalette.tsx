@@ -4,7 +4,7 @@ import {
   Search, BookOpen, PenLine, LayoutGrid, CheckCircle2, 
   Users, GitBranch, Clock, Network, Download, Sliders, 
   Palette, Maximize2, FileText, Plus, Compass, Sparkles,
-  ArrowRight, ShieldCheck, Layers, X, History, Camera, Scissors
+  ArrowRight, ShieldCheck, Layers, X, History, Camera, Scissors, Globe2
 } from 'lucide-react';
 import { WorkspaceTab } from '../../types';
 
@@ -121,6 +121,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         keywords: 'graph nodes connections obsidian wikilinks map',
         action: () => {
           setActiveTab('graph');
+          onClose();
+        }
+      },
+      {
+        id: 'ws-simulation',
+        title: 'Switch to World Simulation Workspace',
+        category: 'Workspace',
+        subtitle: 'Sandboxed What-If turn-based political & economic simulation',
+        icon: Globe2,
+        keywords: 'simulation world sandbox what-if kingdoms factions war famine diplomacy',
+        action: () => {
+          setActiveTab('simulation');
           onClose();
         }
       },

@@ -23,7 +23,7 @@ export type SplitMode = 'none' | 'editor-graph' | 'editor-editor' | 'editor-part
 
 export type SyncStatus = 'synced' | 'saving' | 'offline' | 'saved-locally';
 
-export type WorkspaceTab = 'overview' | 'editor' | 'outliner' | 'threads' | 'codex' | 'partner' | 'graph' | 'characters' | 'timeline' | 'corkboard' | 'scratchpad' | 'continuity' | 'revision' | 'write' | 'plan' | 'review' | 'story' | 'research' | 'publication' | 'versions';
+export type WorkspaceTab = 'overview' | 'editor' | 'outliner' | 'threads' | 'codex' | 'partner' | 'graph' | 'characters' | 'timeline' | 'corkboard' | 'scratchpad' | 'continuity' | 'revision' | 'write' | 'plan' | 'review' | 'story' | 'research' | 'publication' | 'versions' | 'simulation';
 
 export interface ThemeTokens {
   background: string;

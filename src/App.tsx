@@ -20,6 +20,7 @@ import { PresetsModal } from './components/modals/PresetsModal';
 import { OrganizerModal } from './components/modals/OrganizerModal';
 import { VersionHistoryModal } from './components/version/VersionHistoryModal';
 import { VersionHistoryView } from './components/version/VersionHistoryView';
+import { WorldSimulationWorkspace } from './components/simulation/WorldSimulationWorkspace';
 import { X, Minimize2, ArrowLeft } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -234,6 +235,11 @@ export const App: React.FC = () => {
                 {/* 9. VERSION HISTORY & RECOVERY */}
                 {activeTab === 'versions' && (
                   <VersionHistoryView />
+                )}
+
+                {/* 10. WORLD SIMULATION (EXPERIMENTAL) */}
+                {activeTab === 'simulation' && (
+                  <WorldSimulationWorkspace />
                 )}
               </>
             )}
