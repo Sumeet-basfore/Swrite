@@ -336,7 +336,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCommandPalette }) =>
         <button
           onClick={toggleFocusMode}
           className="p-1.5 hover:text-zinc-200 hover:bg-zinc-800 rounded transition-colors"
-          title="Toggle Distraction-Free Focus Mode"
+          title="Toggle Distraction-Free Focus Mode (F11 / Esc to exit)"
         >
           <Maximize2 className="w-3.5 h-3.5" />
         </button>
@@ -363,7 +363,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCommandPalette }) =>
         <button
           onClick={() => setCompilerModalOpen(true)}
           className="flex items-center space-x-1 px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 rounded text-xs font-medium transition-colors border border-zinc-700"
-          title="Compile & Export Manuscript"
+          title="Compile & Export Manuscript (Publication Studio)"
         >
           <Download className="w-3 h-3" />
           <span className="hidden sm:inline">Export</span>

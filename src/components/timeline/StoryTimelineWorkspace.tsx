@@ -400,33 +400,127 @@ export const StoryTimelineWorkspace: React.FC = () => {
                           <div className="flex items-center space-x-2">
                             {getTimeTypeBadge(node.timeType, node.timelineDate)}
 
-                            <button
-                              onClick={() => handleOpenEdit(node)}
-                              className="px-2 py-0.5 rounded text-[11px] text-zinc-400 hover:text-zinc-200 bg-zinc-800/40 hover:bg-zinc-800 border border-zinc-700/40 transition-colors"
-                              title="Edit chronological date & time type"
-                            >
-                              Edit Time
-                            </button>
+                            {editingNode?.id !== node.id && (
+                              <button
+                                onClick={() => handleOpenEdit(node)}
+                                className="px-2 py-0.5 rounded text-[11px] text-zinc-400 hover:text-zinc-200 bg-zinc-800/40 hover:bg-zinc-800 border border-zinc-700/40 transition-colors cursor-pointer"
+                                title="Edit chronological date & time type"
+                                data-testid={`btn-edit-time-${node.id}`}
+                              >
+                                Edit Time
+                              </button>
+                            )}
                           </div>
                         </div>
 
-                        {/* Title & Dramatic Synopsis */}
-                        <div>
-                          <h3 className="text-sm font-bold text-zinc-100 flex items-center space-x-2">
-                            <span>{node.title}</span>
-                            {node.wordCount && (
-                              <span className="text-[10px] font-normal text-zinc-500 font-mono">
-                                ({node.wordCount} words)
+                        {/* Inline Structured Time Editor */}
+                        {editingNode?.id === node.id ? (
+                          <div 
+                            className="p-3.5 rounded-lg bg-zinc-900/95 border border-indigo-500/60 space-y-3 animate-in fade-in duration-100"
+                            data-testid="timeline-inline-editor"
+                          >
+                            <div className="flex items-center justify-between text-xs font-semibold text-zinc-200 border-b border-zinc-800 pb-1.5">
+                              <span className="flex items-center space-x-1.5">
+                                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                                <span>Structured Temporal Editor</span>
                               </span>
-                            )}
-                          </h3>
+                              <button 
+                                onClick={() => setEditingNode(null)} 
+                                className="text-zinc-500 hover:text-zinc-300 text-xs cursor-pointer px-1"
+                              >
+                                ✕
+                              </button>
+                            </div>
 
-                          {node.synopsis && (
-                            <p className="text-xs text-zinc-300 mt-1 leading-relaxed">
-                              {node.synopsis}
-                            </p>
-                          )}
-                        </div>
+                            {/* Time Type Selector Pills */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] text-zinc-400 uppercase font-semibold block">Narrative Perspective</label>
+                              <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 text-[11px]">
+                                {(['present', 'flashback', 'flashforward', 'memory', 'backstory'] as const).map(tt => (
+                                  <button
+                                    key={tt}
+                                    type="button"
+                                    onClick={() => setEditTimeType(tt)}
+                                    className={`py-1 px-1.5 rounded text-center capitalize transition-colors cursor-pointer ${
+                                      editTimeType === tt 
+                                        ? 'bg-indigo-600 text-white font-semibold shadow-xs' 
+                                        : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
+                                    }`}
+                                  >
+                                    {tt}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* In-Universe Timestamp */}
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] text-zinc-400 uppercase font-semibold">In-Universe Timestamp / Era</label>
+                                <span className="text-[10px] text-zinc-500 font-mono">Numeric values order chronology</span>
+                              </div>
+                              <input
+                                type="text"
+                                value={editDateStr}
+                                onChange={e => setEditDateStr(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') handleSaveEdit();
+                                  if (e.key === 'Escape') setEditingNode(null);
+                                }}
+                                placeholder="e.g. Year 1042, Day 3, 14 years earlier..."
+                                className="w-full text-xs p-2 rounded bg-zinc-950 border border-zinc-700 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                                autoFocus
+                                data-testid="input-timeline-date"
+                              />
+                            </div>
+
+                            {/* Quick Presets */}
+                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                              <span className="text-[10px] text-zinc-500">Quick Anchors:</span>
+                              <button type="button" onClick={() => { setEditTimeType('present'); setEditDateStr('Present Day'); }} className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer">Present</button>
+                              <button type="button" onClick={() => { setEditTimeType('flashback'); setEditDateStr('10 years earlier'); }} className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer">10y Earlier</button>
+                              <button type="button" onClick={() => { setEditTimeType('backstory'); setEditDateStr('Previous generation'); }} className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer">Backstory</button>
+                              <button type="button" onClick={() => { setEditTimeType('flashforward'); setEditDateStr('Future Vision'); }} className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer">Future</button>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-zinc-800">
+                              <button
+                                type="button"
+                                onClick={() => setEditingNode(null)}
+                                className="px-2.5 py-1 rounded text-xs text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleSaveEdit}
+                                className="px-3 py-1 rounded text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs cursor-pointer"
+                                data-testid="btn-save-timeline-edit"
+                              >
+                                Save Position
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Title & Dramatic Synopsis */
+                          <div>
+                            <h3 className="text-sm font-bold text-zinc-100 flex items-center space-x-2">
+                              <span>{node.title}</span>
+                              {node.wordCount && (
+                                <span className="text-[10px] font-normal text-zinc-500 font-mono">
+                                  ({node.wordCount} words)
+                                </span>
+                              )}
+                            </h3>
+
+                            {node.synopsis && (
+                              <p className="text-xs text-zinc-300 mt-1 leading-relaxed">
+                                {node.synopsis}
+                              </p>
+                            )}
+                          </div>
+                        )}
 
                         {/* Entities Ribbon: POV, Cast, Locations, Threads */}
                         <div className="pt-2 border-t border-zinc-800/60 flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -604,87 +698,7 @@ export const StoryTimelineWorkspace: React.FC = () => {
         )}
       </div>
 
-      {/* QUICK TIME EDIT MODAL */}
-      {editingNode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div 
-            className="w-full max-w-md rounded-lg border p-5 space-y-4 shadow-xl"
-            style={{ backgroundColor: theme.pageBg, borderColor: theme.pageBorder }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-zinc-100 font-bold text-sm">
-                <Clock className="w-4 h-4 text-zinc-400" />
-                <span>Edit In-Universe Chronology</span>
-              </div>
-              <button 
-                onClick={() => setEditingNode(null)}
-                className="text-zinc-500 hover:text-zinc-300"
-              >
-                ✕
-              </button>
-            </div>
 
-            <div className="space-y-1">
-              <div className="text-xs font-semibold text-zinc-200">
-                {editingNode.title}
-              </div>
-              <div className="text-[11px] text-zinc-400">
-                Manuscript Order #{editingNode.manuscriptOrder} • Chapter {editingNode.chapterNumber || ''}
-              </div>
-            </div>
-
-            {/* Time Type Selector */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-300">
-                Timeline Classification:
-              </label>
-              <select
-                value={editTimeType}
-                onChange={e => setEditTimeType(e.target.value as any)}
-                className="w-full text-xs p-2.5 rounded bg-zinc-900 border border-zinc-700 text-zinc-200 focus:outline-none focus:border-zinc-500"
-              >
-                <option value="present">Present Day Narrative</option>
-                <option value="flashback">Flashback (Narrated later)</option>
-                <option value="flashforward">Flashforward (Future vision)</option>
-                <option value="memory">Character Memory / Reminiscence</option>
-                <option value="backstory">Historical Backstory</option>
-              </select>
-            </div>
-
-            {/* In-Universe Date String */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-300">
-                In-Universe Chronological Timestamp / Era:
-              </label>
-              <input
-                type="text"
-                value={editDateStr}
-                onChange={e => setEditDateStr(e.target.value)}
-                placeholder="e.g. Year 1042, Day 3, 14 years earlier, Dawn..."
-                className="w-full text-xs p-2.5 rounded bg-zinc-900 border border-zinc-700 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
-              />
-              <p className="text-[11px] text-zinc-500">
-                Numeric values (e.g. 1042 or -500) will automatically order the true timeline.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-zinc-800">
-              <button
-                onClick={() => setEditingNode(null)}
-                className="px-3 py-1.5 rounded text-xs text-zinc-400 hover:text-zinc-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveEdit}
-                className="px-3.5 py-1.5 rounded text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-900 shadow-xs"
-              >
-                Save Timeline Position
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* CREATE EVENT MODAL */}
       {isCreatingEvent && (

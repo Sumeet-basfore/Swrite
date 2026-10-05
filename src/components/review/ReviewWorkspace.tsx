@@ -148,10 +148,48 @@ export const ReviewWorkspace: React.FC = () => {
           {selected.originalText && <div className="p-3 rounded border border-zinc-800 bg-zinc-900/60"><div className="text-[10px] uppercase text-zinc-500">Original text</div><p className="mt-1 font-serif italic text-zinc-200">“{selected.originalText}”</p>{selected.suggestedText && <><div className="mt-3 text-[10px] uppercase text-emerald-400">Suggestion</div><p className="mt-1 font-serif text-emerald-300">“{selected.suggestedText}”</p></>}</div>}
           {selected.sourceType === 'continuity' && selected.sourceMetadata.warning?.evidence?.length ? <div className="text-xs text-zinc-400"><div className="text-[10px] uppercase text-zinc-500 mb-2">Why it is flagged</div>{selected.sourceMetadata.warning.evidence.map((e, i) => <p key={i} className="mb-1">{e.label}: {e.details}</p>)}</div> : null}
           <div className="flex flex-wrap gap-2 pt-4 border-t" style={{ borderColor: theme.pageBorder }}>
-            {selected.sourceType === 'proofreading' && <><button onClick={() => actOnSelected('accept')} className="action bg-emerald-600"><Check className="w-3 h-3" /> Accept</button><button onClick={() => actOnSelected('ignore')} className="action bg-zinc-800">Ignore</button><button onClick={() => actOnSelected('intentional')} className="action bg-zinc-800">Intentional</button></>}
-            {selected.sourceType === 'revision' && <><button onClick={() => actOnSelected('resolve')} className="action bg-emerald-600"><Check className="w-3 h-3" /> Resolve</button><button onClick={() => actOnSelected('defer')} className="action bg-zinc-800">Defer</button></>}
-            {selected.sourceType === 'continuity' && <><button onClick={() => actOnSelected('intentional')} className="action bg-zinc-800">Mark Intentional</button><button onClick={() => actOnSelected('ignore')} className="action bg-zinc-800">Ignore</button><button onClick={() => actOnSelected('convert')} className="action bg-zinc-800">Open as Revision</button></>}
-            <button onClick={() => openScene(selected)} className="action bg-zinc-800"><ExternalLink className="w-3 h-3" /> Open Scene</button><button onClick={() => move(1)} className="action bg-zinc-800">Next <ArrowRight className="w-3 h-3" /></button>
+            {selected.sourceType === 'proofreading' && (
+              <>
+                <button onClick={() => actOnSelected('accept')} className="action bg-emerald-700 hover:bg-emerald-600 text-white font-medium">
+                  <Check className="w-3 h-3" /> Accept <kbd className="ml-1 px-1 py-0.2 rounded bg-black/20 text-[10px] font-mono text-emerald-100">A</kbd>
+                </button>
+                <button onClick={() => actOnSelected('ignore')} className="action bg-zinc-800 hover:bg-zinc-700 text-zinc-200">
+                  Ignore <kbd className="ml-1 px-1 py-0.2 rounded bg-zinc-900 text-[10px] font-mono text-zinc-400">I</kbd>
+                </button>
+                <button onClick={() => actOnSelected('intentional')} className="action bg-zinc-800 hover:bg-zinc-700 text-zinc-200">
+                  Intentional
+                </button>
+              </>
+            )}
+            {selected.sourceType === 'revision' && (
+              <>
+                <button onClick={() => actOnSelected('resolve')} className="action bg-emerald-700 hover:bg-emerald-600 text-white font-medium">
+                  <Check className="w-3 h-3" /> Resolve <kbd className="ml-1 px-1 py-0.2 rounded bg-black/20 text-[10px] font-mono text-emerald-100">R</kbd>
+                </button>
+                <button onClick={() => actOnSelected('defer')} className="action bg-zinc-800 hover:bg-zinc-700 text-zinc-200">
+                  Defer
+                </button>
+              </>
+            )}
+            {selected.sourceType === 'continuity' && (
+              <>
+                <button onClick={() => actOnSelected('convert')} className="action bg-indigo-700 hover:bg-indigo-600 text-white font-medium">
+                  Convert to Revision <kbd className="ml-1 px-1 py-0.2 rounded bg-black/20 text-[10px] font-mono text-indigo-100">R</kbd>
+                </button>
+                <button onClick={() => actOnSelected('ignore')} className="action bg-zinc-800 hover:bg-zinc-700 text-zinc-200">
+                  Ignore <kbd className="ml-1 px-1 py-0.2 rounded bg-zinc-900 text-[10px] font-mono text-zinc-400">I</kbd>
+                </button>
+                <button onClick={() => actOnSelected('intentional')} className="action bg-zinc-800 hover:bg-zinc-700 text-zinc-200">
+                  Mark Intentional
+                </button>
+              </>
+            )}
+            <button onClick={() => openScene(selected)} className="action bg-zinc-800 hover:bg-zinc-700 text-zinc-200">
+              <ExternalLink className="w-3 h-3" /> Open Scene <kbd className="ml-1 px-1 py-0.2 rounded bg-zinc-900 text-[10px] font-mono text-zinc-400">↵</kbd>
+            </button>
+            <button onClick={() => move(1)} className="action bg-zinc-800 hover:bg-zinc-700 text-zinc-200">
+              Next <ArrowRight className="w-3 h-3" /> <kbd className="ml-1 px-1 py-0.2 rounded bg-zinc-900 text-[10px] font-mono text-zinc-400">J</kbd>
+            </button>
           </div>
         </div> : selected ? <button onClick={() => setDetailOpen(true)} className="text-sm text-zinc-400 hover:text-zinc-200">Open current review item</button> : <div className="text-sm text-zinc-500">No open items in this scope.</div>}
       </section>
