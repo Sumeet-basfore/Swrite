@@ -378,6 +378,7 @@ export interface ProjectMetadata {
   continuityConfig?: ContinuityConfig;
   proofreadingConfig?: ProofreadingConfig;
   revisionSnapshots?: RevisionSnapshot[];
+  enableWorldSimulation?: boolean;
   createdAt: string;
   updatedAt: string;
 }

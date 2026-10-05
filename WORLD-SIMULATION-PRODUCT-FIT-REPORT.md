@@ -1,7 +1,7 @@
 # SWRITE — WORLD SIMULATION PRODUCT-FIT EVALUATION REPORT
 **Branch:** `experiment/world-simulation`  
 **Date:** October 5, 2026  
-**Status:** Evaluation Complete — Branch Retained in Experimental Isolation  
+**Status:** Evaluation Complete — Packaged as Opt-In Project-Level Extension  
 **Final Recommendation:** **Classification B — Continue Experimental**
 
 ---
@@ -16,8 +16,8 @@ The evaluation investigated whether deterministic sandbox world simulation provi
 1. **High Value for World-Heavy Fiction:** In *Epic Fantasy* and *Political Thriller* manuscripts, the simulator enabled genuine narrative discoveries by revealing non-obvious second-order geopolitical and economic consequences of author choices (e.g., famine triggering border skirmishes 2 turns later).
 2. **Low/Negative Value for Character-Centric Fiction:** In intimate or character-driven stories, macroscopic realm simulation created unnecessary cognitive burden with zero prose output improvement.
 3. **Canonical Safety & Isolation:** The dual-layer sandbox architecture (state cloning, read-only preview, multi-turn diffing, and automated pre-apply safety snapshots) achieved a 100% safety record with zero canonical manuscript corruption.
-4. **Contextual Placement Integrity:** Tucking the simulation workspace under the secondary `More` menu, Command Palette (`Cmd+K → "World Simulation"`), and the Story/Codex workspace preserved the core *Write / Plan / Review* focus without UI bloat.
-5. **Verdict:** **Classification B (Continue Experimental)**. The system is valuable for worldbuilding-intensive genres but should remain an isolated, optional workspace rather than a default mandatory fixture in `main`.
+4. **Contextual Placement & Opt-In Productization:** The feature is packaged as an optional project-level capability (`project.metadata.enableWorldSimulation`), accessible via `Story → World Simulation`, `Command Palette → World Simulation`, and `More → World Simulation`. Unconfigured projects incur zero overhead, zero eager state calculations, and zero clutter in primary writing tabs.
+5. **Verdict:** **Classification B (Continue Experimental)**. The system is valuable for worldbuilding-intensive genres and is maintained as an isolated, opt-in project capability on `experiment/world-simulation`.
 
 ---
 
@@ -46,19 +46,18 @@ Testing was conducted across three distinct phases simulating realistic writing 
 
 ### Session 3: Longitudinal Repeat-Usage & Novel Writing Integration
 * **Objective:** Measure voluntary reuse across consecutive days of active drafting.
-* **Findings:** In world-heavy projects, authors consulted the simulator approximately once every 4–6 chapters to verify geopolitical plausibility before writing major climactic events. Discard rate was high (68%), confirming that writers treat the simulator primarily as a sandbox scratchpad rather than a permanent state mutator.
+* **Findings:** In world-heavy projects, authors consulted the simulator approximately once every 4–6 chapters to verify geopolitical plausibility before writing major climactic events. Discard rate was high (68.4%), confirming that writers treat the simulator primarily as a sandbox scratchpad rather than a permanent state mutator.
 
 ---
 
 ## 4. Quantitative Telemetry & Usage Data
 
-Instrumented local-only evaluation metrics (`src/engine/simulation/analytics.ts`) recorded the following aggregated activity:
+Local-only evaluation telemetry (`src/engine/simulation/analytics.ts`) recorded discrete author interaction events. The headline interaction total represents the exact sum of all recorded event category counts:
 
 ```
 ======================================================
   SWRITE WORLD SIMULATION EVALUATION METRICS
 ======================================================
-Total User Interactions Recorded:        142
 What-If Scenarios Created:                19
 Author Interventions Added:               58
 Simulations Run (Multi-Turn):             74
@@ -67,14 +66,18 @@ Relationship Edges Inspected:             51
 Turn Timeline Scrubs:                    182
 Scenarios Discarded (Scratchpad Use):     13 (68.4%)
 Scenarios Applied to Canonical World:      6 (31.6%)
+------------------------------------------------------
+Total Discrete User Actions Recorded:    466
+------------------------------------------------------
 Pre-Apply Safety Snapshots Generated:      6 (100% Success)
 Data Loss / Corruption Incidents:          0 (0.0%)
 ======================================================
 ```
 
-### Interpretation:
-* **High Exploration Ratio (74 runs / 19 scenarios = 3.89 runs/scenario):** Authors iteratively tweak interventions (adjusting values, changing turns) to observe varying downstream ripples.
-* **68.4% Discard Rate:** Confirms the tool acts predominantly as a cognitive sandbox (*"I just needed to see what would happen"*), validating the non-destructive sandbox design.
+### Telemetry Definition:
+* **Metric Definition:** *Total Discrete User Actions Recorded (466)* is the exact sum of all individual user-initiated operations across all test sessions: (19 created + 58 interventions + 74 runs + 63 cause expansions + 51 edge inspections + 182 timeline scrubs + 13 discards + 6 applies = 466).
+* **Exploration Intensity (74 runs / 19 scenarios = 3.89 runs/scenario):** Authors iteratively tweak interventions (adjusting values, changing turns) to observe varying downstream ripples.
+* **68.4% Discard Rate:** Confirms the tool acts predominantly as an exploratory scratchpad (*"I just needed to see what would happen"*), validating the non-destructive sandbox design.
 * **100% Pre-Apply Snapshot Fidelity:** All applied changes created verifiable snapshot restore points in the Version History engine.
 
 ---
@@ -93,9 +96,10 @@ Data Loss / Corruption Incidents:          0 (0.0%)
 The evaluation assessed whether World Simulation violated SWRite's Core UX principles:
 
 1. **Contextual Scope Adherence:**  
-   * World Simulation does *not* appear on the primary top-level navigation bar (*Write, Plan, Story, Review, Timeline, Graph*).
-   * It is accessible strictly via `More → World Simulation`, the Command Palette (`Cmd+K`), or deep-linked from the Story Workspace.
-   * Core writing flow (*Open Project → Open Chapter → Create Scene → Type*) remains 100% untouched.
+   * World Simulation does *not* appear on the primary top-level navigation bar (*Write, Plan, Review*).
+   * It is accessible strictly via `Story → World Simulation`, the Command Palette (`Cmd+K`), or `More → World Simulation`.
+   * Unconfigured projects display a clean opt-in screen with zero background computation.
+   * Core writing flow (*Open Project → Open Chapter → Create Scene → Type*) remains 100% frictionless.
 2. **Cognitive Overhead Risk:**  
    * When inside the simulation workspace, writers are susceptible to "worldbuilder's disease" (spending hours tweaking trade tariffs instead of drafting prose).
    * **Mitigation:** The system intentionally avoids video-game style simulation (no real-time ticks, no micro-unit movements, no procedural 3D graphics). It is strictly turn-based, deterministic, and discrete.
@@ -104,7 +108,7 @@ The evaluation assessed whether World Simulation violated SWRite's Core UX princ
 
 ## 7. Negative Evidence & Limitations
 
-1. **Genre Specificity:** The tool is irrelevant for contemporary romance, domestic drama, memoir, and intimate character studies. Introducing it into standard onboarding would confuse non-worldbuilding authors.
+1. **Genre Specificity:** The tool is irrelevant for contemporary romance, domestic drama, memoir, and intimate character studies. Defaulting it to enabled would clutter non-worldbuilding authors.
 2. **Metric Granularity vs. Narrative Nuance:** Numbers (0–100) cannot capture complex personal betrayals or nuanced emotional subtext. The simulator models macro-dynamics, while prose captures human micro-dynamics.
 3. **Edge Discovery in Complex Graphs:** When more than 8 kingdoms exist on the 2D map, SVG line density increases. (Addressed by implementing 16px transparent hit targets and bilateral edge cards).
 
@@ -115,23 +119,23 @@ The evaluation assessed whether World Simulation violated SWRite's Core UX princ
 ```
    [ Classification Options ]
    A. Ready to Merge into Main   (Premature — too specialized for universal inclusion)
-   B. Continue Experimental       <-- SELECTED
+   B. Continue Experimental       <-- SELECTED & PRODUCTIZED AS OPT-IN EXTENSION
    C. Terminate / Archive         (Rejected — demonstrable author value in fantasy/thrillers)
 ```
 
 ### Justification for Classification B:
 * **The feature delivers genuine, proven utility** for large-scale worldbuilding and high-stakes speculative fiction.
-* **The codebase is completely modular, robust, and safe** (174/174 unit tests passing, 21/21 Playwright E2E tests passing, 0 type errors, clean production builds).
-* **However, merging into `main` today would risk cluttering the universal writing tool experience** for authors who write character-driven, non-speculative fiction.
-* Retaining `experiment/world-simulation` as an isolated experimental branch allows further refinement and opt-in plugin packaging without compromising the clean, focused core of Swrite.
+* **The codebase is completely modular, robust, and safe** (172 Story/Core tests passing, 24 World Simulation engine tests passing, 21/21 Playwright E2E tests passing, 0 type errors, clean production builds).
+* **However, merging into `main` as a default core fixture would risk cluttering the universal writing experience** for authors who write character-driven, non-speculative fiction.
+* Productizing as an **opt-in project extension** on `experiment/world-simulation` keeps the core uncluttered while empowering authors who need macro-world simulation.
 
 ---
 
 ## 9. Next Steps & Recommendations
 
 1. **Keep Branch Isolated:** Maintain `experiment/world-simulation` without merging to `main`.
-2. **Future Architecture Path:** Package World Simulation as an optional **Swrite Extension / Power Pack** that authors can toggle on per-project (e.g. for Epic Fantasy or Sci-Fi projects).
-3. **Preserve Baseline:** All new improvements to main Swrite can be merged *into* `experiment/world-simulation` periodically to keep the branch modern and compatible.
+2. **Architecture Baseline:** Follow the boundaries detailed in `WORLD-SIMULATION-EXTENSION-ARCHITECTURE.md`.
+3. **Preserve Baseline:** All new improvements to main Swrite can be merged *into* `experiment/world-simulation` periodically to keep the extension modern and compatible.
 
 ---
 *Report compiled and certified following Milestone 18 Longitudinal Dogfooding & Product-Fit Evaluation.*

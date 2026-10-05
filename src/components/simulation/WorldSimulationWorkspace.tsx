@@ -8,6 +8,10 @@ import {
   createSimulationState, deepClone 
 } from '../../engine/simulation/state';
 import { 
+  isWorldSimulationEnabled, enableWorldSimulation, disableWorldSimulation, 
+  deriveSimulationBaseline, clearCrossProjectSimulationState 
+} from '../../engine/simulation/extension';
+import { 
   createScenario, addScheduledAction, discardScenario 
 } from '../../engine/simulation/scenarios';
 import { simulate } from '../../engine/simulation/simulator';
@@ -26,22 +30,27 @@ import { ApplyScenarioModal } from './ApplyScenarioModal';
 
 import { 
   Globe2, Plus, Play, Trash2, ShieldCheck, CheckCircle2, 
-  Sliders, AlertCircle, RotateCcw, ArrowRight, BookOpen, Layers, X, BarChart3 
+  Sliders, AlertCircle, RotateCcw, ArrowRight, BookOpen, Layers, X, BarChart3,
+  Power
 } from 'lucide-react';
 
 export const WorldSimulationWorkspace: React.FC = () => {
   const { project, setProject, setActiveTab } = useSwriteStore();
   const theme = project.metadata.theme;
+  const isEnabled = isWorldSimulationEnabled(project);
 
   // Track workspace open event on mount
   useEffect(() => {
     recordSimulationEvent('simulation_workspace_opened');
   }, []);
 
-  // 1. Initialize Baseline Simulation State from Canonical Project
+  // 1. Initialize Baseline Simulation State from Canonical Project (Lazy on enablement)
   const baseState = useMemo(() => {
-    return createSimulationState(project, 6);
-  }, [project]);
+    if (!isEnabled) {
+      return { turn: 0, maxTurns: 6, kingdoms: {}, relations: {}, globalVariables: {}, activeEvents: [], history: [] };
+    }
+    return deriveSimulationBaseline(project, 6);
+  }, [project, isEnabled]);
 
   // 2. Scenario state
   const [activeScenario, setActiveScenario] = useState<SimulationScenario | null>(null);
@@ -181,6 +190,92 @@ export const WorldSimulationWorkspace: React.FC = () => {
   const kingdomCount = Object.keys(baseState.kingdoms).length;
   const relationCount = Object.keys(baseState.relations).length;
 
+  // 0. Render Opt-In Extension Enablement Screen if not enabled for this project
+  if (!isEnabled) {
+    return (
+      <div 
+        className="flex-1 flex flex-col h-full overflow-y-auto select-none font-sans p-8 items-center justify-center"
+        style={{ 
+          backgroundColor: theme.colors?.background || theme.bg || '#101012',
+          color: theme.colors?.text || theme.text || '#f4f4f5'
+        }}
+        data-testid="world-simulation-opt-in-screen"
+      >
+        <div className="max-w-xl w-full mx-auto space-y-6 text-center">
+          {/* Badge & Title */}
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-950/60 border border-indigo-800/60 text-indigo-300 text-xs font-mono">
+            <Globe2 className="w-3.5 h-3.5" />
+            <span>OPTIONAL PROJECT EXTENSION</span>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="font-serif text-2xl font-bold text-zinc-100">
+              World Simulation Extension
+            </h2>
+            <p className="text-xs text-zinc-400 max-w-md mx-auto leading-relaxed">
+              An isolated causal sandbox designed for speculative, historical, and political fiction. Model realm resources, trade embargos, and diplomatic friction across multi-turn what-if scenarios without altering your manuscript.
+            </p>
+          </div>
+
+          {/* Feature Highlights Grid */}
+          <div className="grid grid-cols-3 gap-3 text-left">
+            <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-3.5 space-y-1">
+              <div className="font-serif font-semibold text-xs text-zinc-200 flex items-center space-x-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Isolated Sandbox</span>
+              </div>
+              <p className="text-[11px] text-zinc-400 leading-snug">
+                What-if changes run in transient memory. Canonical prose and codex entries stay 100% safe.
+              </p>
+            </div>
+
+            <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-3.5 space-y-1">
+              <div className="font-serif font-semibold text-xs text-zinc-200 flex items-center space-x-1.5">
+                <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Causal Chains</span>
+              </div>
+              <p className="text-[11px] text-zinc-400 leading-snug">
+                Deterministic cause/effect evaluators trace exact second-order consequences turn by turn.
+              </p>
+            </div>
+
+            <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-3.5 space-y-1">
+              <div className="font-serif font-semibold text-xs text-zinc-200 flex items-center space-x-1.5">
+                <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                <span>Safety Snapshots</span>
+              </div>
+              <p className="text-[11px] text-zinc-400 leading-snug">
+                Applying consequences generates instant rollback snapshots in Version History.
+              </p>
+            </div>
+          </div>
+
+          {/* Action Row */}
+          <div className="flex items-center justify-center space-x-3 pt-2">
+            <button
+              onClick={() => {
+                setProject(enableWorldSimulation(project));
+              }}
+              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs transition-all shadow-lg hover:shadow-indigo-500/20 flex items-center space-x-2 cursor-pointer"
+              data-testid="btn-enable-simulation-extension"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Enable for this Project</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('write')}
+              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium rounded-lg text-xs transition-colors cursor-pointer"
+              data-testid="btn-cancel-simulation-extension"
+            >
+              <span>Return to Writing</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className="flex-1 flex flex-col h-full overflow-hidden select-none font-sans"
@@ -218,9 +313,14 @@ export const WorldSimulationWorkspace: React.FC = () => {
               </span>
             </div>
           ) : (
-            <span className="text-xs text-zinc-400 font-medium">
-              Canonical World Baseline
-            </span>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-zinc-400 font-medium">
+                Canonical World Baseline
+              </span>
+              <span className="px-2 py-0.5 rounded bg-indigo-950/60 text-indigo-300 font-mono text-[10px] border border-indigo-800/60">
+                EXTENSION ACTIVE
+              </span>
+            </div>
           )}
         </div>
 
@@ -235,6 +335,19 @@ export const WorldSimulationWorkspace: React.FC = () => {
           >
             <BarChart3 className="w-3.5 h-3.5 text-indigo-400" />
             <span>Metrics</span>
+          </button>
+
+          {/* Disable Extension Button */}
+          <button
+            onClick={() => {
+              setProject(disableWorldSimulation(project));
+            }}
+            className="px-2.5 py-1 rounded text-xs text-zinc-400 hover:text-rose-300 hover:bg-zinc-800 transition-colors flex items-center space-x-1 cursor-pointer border border-zinc-800"
+            title="Disable World Simulation Extension for this Project"
+            data-testid="btn-disable-simulation-extension"
+          >
+            <Power className="w-3.5 h-3.5 text-zinc-500" />
+            <span>Disable</span>
           </button>
 
           {activeScenario ? (

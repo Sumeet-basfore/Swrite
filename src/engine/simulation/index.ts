@@ -14,3 +14,4 @@ export * from './explain';
 export * from './scenarios';
 export * from './apply';
 export * from './analytics';
+export * from './extension';

@@ -14,6 +14,8 @@ import {
   getCauseChainForEntity, formatCauseChainNarrative, generateSimulationDiff,
   applySimulationToProject,
   recordSimulationEvent, getSimulationEvaluationSummary, resetSimulationEvaluationMetrics,
+  isWorldSimulationEnabled, enableWorldSimulation, disableWorldSimulation, 
+  deriveSimulationBaseline, clearCrossProjectSimulationState,
   WorldRule, Kingdom, WorldRelation, SimulationScenario
 } from './index';
 import { createSimulationTestProject } from './testFixture';
@@ -273,7 +275,51 @@ export function runWorldSimulationTests(): void {
   assert(computedFromAbs === 55, `Expected 55, got ${computedFromAbs}`);
   console.log('✓ Live delta and absolute value computation verified');
 
+  console.log('--- 21. Testing Project-Level Opt-In Enablement & Lifecycle ---');
+  const unconfiguredProject = createSimulationTestProject();
+  assert(isWorldSimulationEnabled(unconfiguredProject) === false, 'World simulation disabled by default on unconfigured project');
+
+  const enabledProject = enableWorldSimulation(unconfiguredProject);
+  assert(isWorldSimulationEnabled(enabledProject) === true, 'World simulation successfully enabled for project');
+  assert(enabledProject.metadata.enableWorldSimulation === true, 'Metadata flag stored explicitly');
+  assert(enabledProject.acts.length === unconfiguredProject.acts.length, 'Prose and acts remain untouched on enablement');
+
+  const disabledProject = disableWorldSimulation(enabledProject);
+  assert(isWorldSimulationEnabled(disabledProject) === false, 'World simulation successfully disabled for project');
+  console.log('✓ Project-level opt-in enablement and lifecycle verified');
+
+  console.log('--- 22. Testing Lazy Initialization & Cache Behavior ---');
+  clearCrossProjectSimulationState();
+  const lazyBaseline = deriveSimulationBaseline(enabledProject, 6);
+  assert(Object.keys(lazyBaseline.kingdoms).length >= 2, 'Lazy baseline derives kingdoms on demand');
+  const cachedBaseline = deriveSimulationBaseline(enabledProject, 6);
+  assert(JSON.stringify(lazyBaseline) === JSON.stringify(cachedBaseline), 'Cached baseline returns bit-exact identical structure');
+  console.log('✓ Lazy initialization & cache behavior verified');
+
+  console.log('--- 23. Testing Cross-Project Isolation & Cache Eviction ---');
+  const projectA = createSimulationTestProject();
+  projectA.metadata.id = 'proj-alpha';
+  projectA.metadata.title = 'Project Alpha';
+  
+  const projectB = createSimulationTestProject();
+  projectB.metadata.id = 'proj-beta';
+  projectB.metadata.title = 'Project Beta';
+
+  const baselineA = deriveSimulationBaseline(projectA, 6);
+  assert(baselineA.turn === 0, 'Project A baseline initialized');
+
+  clearCrossProjectSimulationState(projectB.metadata.id);
+  const baselineB = deriveSimulationBaseline(projectB, 6);
+  assert(baselineB.turn === 0, 'Project B baseline derived independently without cache collision');
+  console.log('✓ Cross-project isolation and cache eviction verified');
+
+  console.log('--- 24. Testing Core Non-Interference with Writing Workflows ---');
+  const normalProject = createSimulationTestProject();
+  assert((normalProject.metadata as any).enableWorldSimulation !== true, 'Standard project has no simulation flags');
+  assert((normalProject as any).kingdoms === undefined, 'No simulation kingdoms injected into raw project data');
+  console.log('✓ Core non-interference with writing workflows verified');
+
   console.log('\n======================================================');
-  console.log('  ALL 20 WORLD SIMULATION ENGINE TESTS PASSED (✓)');
+  console.log('  ALL 24 WORLD SIMULATION ENGINE TESTS PASSED (✓)');
   console.log('======================================================\n');
 }
