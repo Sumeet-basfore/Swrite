@@ -9,7 +9,9 @@ import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { NewDocumentDialog } from './NewDocumentDialog';
 import { EditorCanvas } from '../editor';
 import { PlanningStudio } from '../planning';
+import { DeskStudio, SplitDeskContainer } from '../desk';
 import { ContextMenuState, TreeNode } from './types';
+import { SwriteIpc } from '../lib/ipc';
 import './shell.css';
 
 export const ProjectShell: React.FC = () => {
@@ -41,7 +43,8 @@ export const ProjectShell: React.FC = () => {
     openSearchResult,
   } = useProjectState();
 
-  const [studioMode, setStudioMode] = useState<'write' | 'plan'>('write');
+  const [studioMode, setStudioMode] = useState<'write' | 'plan' | 'desk'>('write');
+  const [splitDocument, setSplitDocument] = useState<{ path: string; content: string } | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [showDevDrawer, setShowDevDrawer] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -88,6 +91,13 @@ export const ProjectShell: React.FC = () => {
         return;
       }
 
+      // Mod+3: Creative Desk
+      if (isMod && !e.shiftKey && key === '3') {
+        e.preventDefault();
+        setStudioMode('desk');
+        return;
+      }
+
       // Mod+P or Mod+Shift+O: Open Search
       if ((isMod && key === 'p') || (isMod && e.shiftKey && key === 'o')) {
         e.preventDefault();
@@ -113,6 +123,19 @@ export const ProjectShell: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleSidebar]);
+
+  const handleOpenSplitDocument = async (targetPath: string) => {
+    try {
+      let content = '';
+      if (!targetPath.endsWith('board.json') && !targetPath.includes('/Moodboards/')) {
+        content = await SwriteIpc.fileRead(targetPath);
+      }
+      setSplitDocument({ path: targetPath, content });
+      setStudioMode('write');
+    } catch (e) {
+      console.error('Failed to open split document:', e);
+    }
+  };
 
   const handleContextMenu = (
     e: React.MouseEvent,
@@ -140,6 +163,18 @@ export const ProjectShell: React.FC = () => {
         focusMode={focusMode}
         studioMode={studioMode}
         onChangeStudioMode={setStudioMode}
+        isSplitOpen={splitDocument !== null}
+        onToggleSplit={() => {
+          if (splitDocument) {
+            setSplitDocument(null);
+          } else {
+            // Open first desk note or moodboard if available
+            const firstDesk = filesView?.desk_files?.find((f) => !f.is_directory);
+            if (firstDesk) {
+              handleOpenSplitDocument(firstDesk.relative_path);
+            }
+          }
+        }}
         onToggleSidebar={toggleSidebar}
         onOpenSearch={() => setSearchModalOpen(true)}
         onToggleRecents={() => setRecentsMenuOpen((prev) => !prev)}
@@ -176,7 +211,7 @@ export const ProjectShell: React.FC = () => {
           />
         )}
 
-        {/* Main Document Workspace / Planning Studio */}
+        {/* Main Document Workspace / Planning Studio / Creative Desk */}
         <main className="swrite-shell-canvas-area">
           {studioMode === 'plan' ? (
             <PlanningStudio
@@ -186,6 +221,28 @@ export const ProjectShell: React.FC = () => {
                 setStudioMode('write');
                 openDocument(path);
               }}
+              onRefreshFiles={refreshFiles}
+            />
+          ) : studioMode === 'desk' ? (
+            <DeskStudio
+              deskFiles={filesView?.desk_files || []}
+              assetFiles={filesView?.asset_files || []}
+              onOpenFile={(path) => {
+                setStudioMode('write');
+                openDocument(path);
+              }}
+              onOpenSplitFile={handleOpenSplitDocument}
+              onRefreshFiles={refreshFiles}
+            />
+          ) : splitDocument && selectedFile ? (
+            <SplitDeskContainer
+              primaryDocumentPath={selectedFile}
+              primaryFileContent={fileContent}
+              secondaryDocumentPath={splitDocument.path}
+              secondaryFileContent={splitDocument.content}
+              projectAssets={filesView?.asset_files || []}
+              onCloseSplit={() => setSplitDocument(null)}
+              onOpenDocument={openDocument}
               onRefreshFiles={refreshFiles}
             />
           ) : selectedFile && !isLoading ? (
@@ -206,6 +263,9 @@ export const ProjectShell: React.FC = () => {
                   </button>
                   <button onClick={() => setStudioMode('plan')} className="empty-create-btn" style={{ background: 'var(--bg-desk)', color: 'var(--text-ink)', border: '1px solid var(--border-quiet)' }}>
                     Open Planning Studio
+                  </button>
+                  <button onClick={() => setStudioMode('desk')} className="empty-create-btn" style={{ background: 'var(--bg-desk)', color: 'var(--text-ink)', border: '1px solid var(--border-quiet)' }}>
+                    Open Creative Desk
                   </button>
                 </div>
               </div>

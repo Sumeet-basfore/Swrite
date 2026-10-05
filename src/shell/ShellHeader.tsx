@@ -10,6 +10,8 @@ import {
   Sliders,
   PenLine,
   Compass,
+  Layout,
+  Columns,
 } from 'lucide-react';
 
 export interface ShellHeaderProps {
@@ -17,8 +19,10 @@ export interface ShellHeaderProps {
   activePath: string | null;
   sidebarCollapsed: boolean;
   focusMode: boolean;
-  studioMode: 'write' | 'plan';
-  onChangeStudioMode: (mode: 'write' | 'plan') => void;
+  studioMode: 'write' | 'plan' | 'desk';
+  onChangeStudioMode: (mode: 'write' | 'plan' | 'desk') => void;
+  isSplitOpen?: boolean;
+  onToggleSplit?: () => void;
   onToggleSidebar: () => void;
   onOpenSearch: () => void;
   onToggleRecents: () => void;
@@ -34,6 +38,8 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   focusMode,
   studioMode,
   onChangeStudioMode,
+  isSplitOpen,
+  onToggleSplit,
   onToggleSidebar,
   onOpenSearch,
   onToggleRecents,
@@ -101,10 +107,27 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
             <Compass size={13} />
             <span>Plan</span>
           </button>
+          <button
+            className={`mode-tab-btn ${studioMode === 'desk' ? 'active' : ''}`}
+            onClick={() => onChangeStudioMode('desk')}
+            title="Creative Desk (Ctrl+3)"
+          >
+            <Layout size={13} />
+            <span>Desk</span>
+          </button>
         </div>
       </div>
 
       <div className="header-right">
+        {onToggleSplit && (
+          <button
+            onClick={onToggleSplit}
+            className={`header-btn ${isSplitOpen ? 'active' : ''}`}
+            title="Toggle Split View with Supporting Desk Material"
+          >
+            <Columns size={15} />
+          </button>
+        )}
         <button
           onClick={onOpenSearch}
           className="header-search-btn"

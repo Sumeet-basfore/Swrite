@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod desk;
 pub mod document;
 pub mod error;
 pub mod filesystem;
@@ -47,6 +48,12 @@ pub fn run() {
             commands::outline_meta_load,
             commands::outline_meta_save,
             commands::outline_meta_update_item,
+            commands::moodboard_load,
+            commands::moodboard_save,
+            commands::moodboard_create,
+            commands::asset_import,
+            commands::asset_read_base64,
+            commands::desk_scan_backlinks,
             commands::recovery_save,
             commands::recovery_clear,
             commands::recovery_list,

@@ -91,6 +91,78 @@ export interface OutlinePlanningData {
   items: ItemPlanningMeta[];
 }
 
+// Creative Desk & Moodboard Types
+export interface MoodboardCanvasState {
+  pan_x: number;
+  pan_y: number;
+  zoom: number;
+}
+
+export type MoodboardItem =
+  | {
+      type: 'image';
+      id: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      asset_path: string;
+      caption?: string | null;
+      z_index: number;
+    }
+  | {
+      type: 'text';
+      id: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      text: string;
+      style: 'title' | 'body' | 'label';
+      z_index: number;
+    }
+  | {
+      type: 'color';
+      id: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      hex: string;
+      label?: string | null;
+      z_index: number;
+    }
+  | {
+      type: 'note';
+      id: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      title: string;
+      content: string;
+      z_index: number;
+    }
+  | {
+      type: 'link';
+      id: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      title: string;
+      target_path: string;
+      z_index: number;
+    };
+
+export interface MoodboardData {
+  id: string;
+  name: string;
+  canvas: MoodboardCanvasState;
+  items: MoodboardItem[];
+  updated_at: number;
+}
+
 export interface RecoveryDraft {
   document_id: string;
   relative_path: string;

@@ -1,3 +1,4 @@
+pub mod desk;
 pub mod document;
 pub mod file;
 pub mod history;
@@ -8,6 +9,7 @@ pub mod recovery;
 pub mod search;
 pub mod watcher;
 
+pub use desk::*;
 pub use document::*;
 pub use file::*;
 pub use history::*;

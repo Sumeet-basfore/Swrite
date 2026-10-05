@@ -14,6 +14,7 @@ import {
   TimelineData,
   OutlinePlanningData,
   ItemPlanningMeta,
+  MoodboardData,
 } from '../types/ipc';
 
 export const SwriteIpc = {
@@ -97,6 +98,25 @@ export const SwriteIpc = {
 
   outlineMetaUpdateItem: (item: ItemPlanningMeta) =>
     invoke<void>('outline_meta_update_item', { item }),
+
+  // Desk & Moodboard operations
+  moodboardLoad: (relativePath: string) =>
+    invoke<MoodboardData>('moodboard_load', { relativePath }),
+
+  moodboardSave: (relativePath: string, data: MoodboardData) =>
+    invoke<void>('moodboard_save', { relativePath, data }),
+
+  moodboardCreate: (name: string) =>
+    invoke<string>('moodboard_create', { name }),
+
+  assetImport: (sourceAbsolutePath: string, customName?: string) =>
+    invoke<string>('asset_import', { sourceAbsolutePath, customName }),
+
+  assetReadBase64: (relativePath: string) =>
+    invoke<string>('asset_read_base64', { relativePath }),
+
+  deskScanBacklinks: (targetRelativePath: string) =>
+    invoke<string[]>('desk_scan_backlinks', { targetRelativePath }),
 
   // Document operations
   documentRead: (relativePath: string, documentId?: string) =>
