@@ -185,6 +185,7 @@ export interface SwriteState {
   startSprint: (minutes: number, targetWords?: number) => void;
   stopSprint: () => void;
   resetProjectToDefault: () => void;
+  setProject: (newProj: ProjectData) => void;
 
   // Continuity Engine Store Actions
   dismissContinuityWarning: (warningId: string) => void;
@@ -1251,6 +1252,11 @@ export function useSwriteStore(): SwriteState {
       localFolderName = folderName;
       activeChapterId = newProj.acts[0]?.chapters[0]?.id || '';
       activeTab = 'editor';
+      emitChange();
+    },
+
+    setProject: (newProj) => {
+      globalState = newProj;
       emitChange();
     },
 

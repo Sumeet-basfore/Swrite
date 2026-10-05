@@ -20,6 +20,7 @@ import { PresetsModal } from './components/modals/PresetsModal';
 import { OrganizerModal } from './components/modals/OrganizerModal';
 import { VersionHistoryModal } from './components/version/VersionHistoryModal';
 import { VersionHistoryView } from './components/version/VersionHistoryView';
+import { ProjectOrganizationWorkspace } from './components/organization/ProjectOrganizationWorkspace';
 import { X, Minimize2, ArrowLeft } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -234,6 +235,11 @@ export const App: React.FC = () => {
                 {/* 9. VERSION HISTORY & RECOVERY */}
                 {activeTab === 'versions' && (
                   <VersionHistoryView />
+                )}
+
+                {/* 10. AI PROJECT INTELLIGENCE & ORGANIZATION */}
+                {activeTab === 'organization' && (
+                  <ProjectOrganizationWorkspace />
                 )}
               </>
             )}

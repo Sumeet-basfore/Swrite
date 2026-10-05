@@ -3,7 +3,7 @@ import { useSwriteStore } from '../../store/useSwriteStore';
 import { 
   PenLine, LayoutGrid, CheckCircle2, Users, Clock, Network, 
   Download, Palette, Sliders, Maximize2, Minimize2, Search,
-  Square, Timer, ChevronDown, Columns, Check, FolderTree, History
+  Square, Timer, ChevronDown, Columns, Check, FolderTree, History, Sparkles
 } from 'lucide-react';
 import { SplitMode, WorkspaceTab } from '../../types';
 import { ContinuityEngine } from '../../engine';
@@ -57,6 +57,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCommandPalette }) =>
   const isStoryActive = activeTab === 'codex' || activeTab === 'story' || activeTab === 'threads' || activeTab === 'characters';
   const isTimelineActive = activeTab === 'timeline';
   const isGraphActive = activeTab === 'graph';
+  const isOrgActive = activeTab === 'organization';
 
   return (
     <header 
@@ -154,13 +155,13 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCommandPalette }) =>
               title="More Workspaces"
               data-testid="workspace-more-btn"
               className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center space-x-1 ${
-                isStoryActive || isTimelineActive || isGraphActive
+                isStoryActive || isTimelineActive || isGraphActive || isOrgActive
                   ? 'bg-zinc-800 text-zinc-100 font-semibold'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
               }`}
             >
               <span>
-                {isStoryActive ? 'Story' : isTimelineActive ? 'Timeline' : isGraphActive ? 'Graph' : 'More'}
+                {isStoryActive ? 'Story' : isTimelineActive ? 'Timeline' : isGraphActive ? 'Graph' : isOrgActive ? 'Intelligence' : 'More'}
               </span>
               <ChevronDown className="w-3 h-3 text-zinc-500" />
             </button>
@@ -211,6 +212,19 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCommandPalette }) =>
                 >
                   <Network className="w-3.5 h-3.5 text-purple-400" />
                   <span>Universe Graph</span>
+                </button>
+
+                <button
+                  data-testid="nav-organization"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTab('organization');
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded flex items-center space-x-2 hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Project Intelligence</span>
                 </button>
 
                 <div className="h-[1px] bg-zinc-800 my-1" />

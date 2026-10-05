@@ -5,3 +5,4 @@ export * from './continuityEngine';
 export * from './migration';
 export * from './queries';
 export * from './snapshot';
+export * from './intelligence';

@@ -5,6 +5,7 @@ export * from './publication';
 export * from './proofreading';
 export * from './revision';
 export * from './snapshot';
+export * from './intelligence';
 
 import { 
   Scene, PlotThread, StoryArc, Character, Location, 
@@ -14,6 +15,7 @@ import { ContinuityConfig } from './continuity';
 import { ProofreadingConfig } from './proofreading';
 import { RevisionRound, RevisionItem, RevisionSnapshot } from './revision';
 import { ManuscriptSnapshot } from './snapshot';
+import { OrganizationProposal, ProjectIntelligenceResult } from './intelligence';
 
 export type WriterPreset = 'pantser' | 'plotter' | 'plantser';
 
@@ -23,7 +25,7 @@ export type SplitMode = 'none' | 'editor-graph' | 'editor-editor' | 'editor-part
 
 export type SyncStatus = 'synced' | 'saving' | 'offline' | 'saved-locally';
 
-export type WorkspaceTab = 'overview' | 'editor' | 'outliner' | 'threads' | 'codex' | 'partner' | 'graph' | 'characters' | 'timeline' | 'corkboard' | 'scratchpad' | 'continuity' | 'revision' | 'write' | 'plan' | 'review' | 'story' | 'research' | 'publication' | 'versions';
+export type WorkspaceTab = 'overview' | 'editor' | 'outliner' | 'threads' | 'codex' | 'partner' | 'graph' | 'characters' | 'timeline' | 'corkboard' | 'scratchpad' | 'continuity' | 'revision' | 'write' | 'plan' | 'review' | 'story' | 'research' | 'publication' | 'versions' | 'organization';
 
 export interface ThemeTokens {
   background: string;
