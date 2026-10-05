@@ -186,7 +186,7 @@ export interface SwriteState {
   startSprint: (minutes: number, targetWords?: number) => void;
   stopSprint: () => void;
   resetProjectToDefault: () => void;
-  setProject: (newProj: ProjectData) => void;
+
 
   // Continuity Engine Store Actions
   dismissContinuityWarning: (warningId: string) => void;
@@ -1261,10 +1261,6 @@ export function useSwriteStore(): SwriteState {
       emitChange();
     },
 
-    setProject: (newProj) => {
-      globalState = newProj;
-      emitChange();
-    },
 
     toggleSidebar: () => {
       isSidebarOpen = !isSidebarOpen;

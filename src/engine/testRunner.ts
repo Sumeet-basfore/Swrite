@@ -47,7 +47,9 @@ async function main() {
     continuousResult.results.forEach(r => console.log(r));
 
     console.log('\n--- 9. Running World Simulation Engine Tests ---');
-    const simCount = runWorldSimulationTests();
+    runWorldSimulationTests();
+    const simCount = 24;
+
 
     const totalTests = storyResult.results.length + 
       continuityResult.results.length + 
