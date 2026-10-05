@@ -63,6 +63,7 @@ export interface SwriteState {
   aiConfig: AIProviderConfig;
 
   // Actions
+  setProject: (newProject: ProjectData) => void;
   setActiveTab: (tab: WorkspaceTab) => void;
   setActiveChapterId: (id: string) => void;
   setActiveSceneId: (id: string | null) => void;
@@ -443,6 +444,11 @@ export function useSwriteStore(): SwriteState {
     isRevisionReviewModeOpen,
     sprint: sprintState,
     aiConfig: aiConfigState,
+
+    setProject: (newProject) => {
+      globalState = newProject;
+      emitChange();
+    },
 
     setActiveRevisionRoundId: (id) => {
       activeRevisionRoundId = id;

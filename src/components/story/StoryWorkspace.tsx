@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSwriteStore } from '../../store/useSwriteStore';
 import { WorldCodexWorkspace } from '../codex/WorldCodexWorkspace';
 import { PlotThreadsWorkspace } from '../threads/PlotThreadsWorkspace';
-import { Users, GitBranch, MapPin, Scroll, Plus, Compass, Sparkles } from 'lucide-react';
+import { Users, GitBranch, MapPin, Scroll, Plus, Compass, Sparkles, Globe2 } from 'lucide-react';
 
 export const StoryWorkspace: React.FC = () => {
   const { project, setActiveTab } = useSwriteStore();
@@ -58,6 +58,15 @@ export const StoryWorkspace: React.FC = () => {
             >
               <GitBranch className="w-3.5 h-3.5" />
               <span>Plot Threads ({threadCount})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('simulation')}
+              className="px-3 py-1 rounded transition-colors flex items-center space-x-1.5 text-amber-400 hover:text-amber-300 hover:bg-zinc-800 cursor-pointer"
+              title="Open World Simulation Workspace"
+            >
+              <Globe2 className="w-3.5 h-3.5" />
+              <span>Simulation</span>
             </button>
           </div>
         </div>

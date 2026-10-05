@@ -21,6 +21,8 @@ import { OrganizerModal } from './components/modals/OrganizerModal';
 import { VersionHistoryModal } from './components/version/VersionHistoryModal';
 import { VersionHistoryView } from './components/version/VersionHistoryView';
 import { ProjectOrganizationWorkspace } from './components/organization/ProjectOrganizationWorkspace';
+import { WorldSimulationWorkspace } from './components/simulation/WorldSimulationWorkspace';
+
 import { X, Minimize2, ArrowLeft } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -241,6 +243,12 @@ export const App: React.FC = () => {
                 {activeTab === 'organization' && (
                   <ProjectOrganizationWorkspace />
                 )}
+
+                {/* 11. WORLD SIMULATION (EXPERIMENTAL) */}
+                {activeTab === 'simulation' && (
+                  <WorldSimulationWorkspace />
+                )}
+
               </>
             )}
           </>

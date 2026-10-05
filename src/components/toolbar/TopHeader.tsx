@@ -3,7 +3,8 @@ import { useSwriteStore } from '../../store/useSwriteStore';
 import { 
   PenLine, LayoutGrid, CheckCircle2, Users, Clock, Network, 
   Download, Palette, Sliders, Maximize2, Minimize2, Search,
-  Square, Timer, ChevronDown, Columns, Check, FolderTree, History, Sparkles
+  Square, Timer, ChevronDown, Columns, Check, FolderTree, History, Sparkles, Globe2
+
 } from 'lucide-react';
 import { SplitMode, WorkspaceTab } from '../../types';
 import { ContinuityEngine } from '../../engine';
@@ -226,6 +227,20 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenCommandPalette }) =>
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                   <span>Project Intelligence</span>
                 </button>
+
+                <button
+                  data-testid="nav-simulation"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTab('simulation');
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded flex items-center space-x-2 hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  <Globe2 className="w-3.5 h-3.5 text-amber-400" />
+                  <span>World Simulation</span>
+                </button>
+
 
                 <div className="h-[1px] bg-zinc-800 my-1" />
 

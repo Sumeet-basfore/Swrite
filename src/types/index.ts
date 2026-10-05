@@ -25,7 +25,8 @@ export type SplitMode = 'none' | 'editor-graph' | 'editor-editor' | 'editor-part
 
 export type SyncStatus = 'synced' | 'saving' | 'offline' | 'saved-locally';
 
-export type WorkspaceTab = 'overview' | 'editor' | 'outliner' | 'threads' | 'codex' | 'partner' | 'graph' | 'characters' | 'timeline' | 'corkboard' | 'scratchpad' | 'continuity' | 'revision' | 'write' | 'plan' | 'review' | 'story' | 'research' | 'publication' | 'versions' | 'organization';
+export type WorkspaceTab = 'overview' | 'editor' | 'outliner' | 'threads' | 'codex' | 'partner' | 'graph' | 'characters' | 'timeline' | 'corkboard' | 'scratchpad' | 'continuity' | 'revision' | 'write' | 'plan' | 'review' | 'story' | 'research' | 'publication' | 'versions' | 'organization' | 'simulation';
+
 
 export interface ThemeTokens {
   background: string;
@@ -380,6 +381,7 @@ export interface ProjectMetadata {
   continuityConfig?: ContinuityConfig;
   proofreadingConfig?: ProofreadingConfig;
   revisionSnapshots?: RevisionSnapshot[];
+  enableWorldSimulation?: boolean;
   createdAt: string;
   updatedAt: string;
 }

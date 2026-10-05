@@ -6,9 +6,10 @@ import { runPhase4Tests } from './phase4.test';
 import { runIntelligenceEngineTests } from './intelligence/intelligence.test';
 import { runGoldStandardBenchmarkTests } from './intelligence/goldBenchmark.test';
 import { runContinuousIntelligenceTests } from './intelligence/continuousIntelligence.test';
+import { runWorldSimulationTests } from './simulation/simulationEngine.test';
 
 console.log('\n======================================================');
-console.log('       SWRITE STORY & CONTINUITY ENGINE TESTS');
+console.log('       SWRITE STORY, CONTINUITY, INTELLIGENCE & SIMULATION TESTS');
 console.log('======================================================\n');
 
 async function main() {
@@ -45,6 +46,9 @@ async function main() {
     const continuousResult = await runContinuousIntelligenceTests();
     continuousResult.results.forEach(r => console.log(r));
 
+    console.log('\n--- 9. Running World Simulation Engine Tests ---');
+    const simCount = runWorldSimulationTests();
+
     const totalTests = storyResult.results.length + 
       continuityResult.results.length + 
       reviewResult.results.length + 
@@ -52,10 +56,11 @@ async function main() {
       phase4Result.results.length + 
       intelResult.results.length +
       benchmarkResult.results.length +
-      continuousResult.results.length;
+      continuousResult.results.length +
+      simCount;
 
     console.log('\n======================================================');
-    console.log(`  ALL ${totalTests} STORY, CONTINUITY, REVIEW, INSPECTOR, INTELLIGENCE, BENCHMARK & CONTINUOUS TESTS PASSED (✓)`);
+    console.log(`  ALL ${totalTests} STORY, CONTINUITY, REVIEW, INSPECTOR, INTELLIGENCE, BENCHMARK, CONTINUOUS & SIMULATION TESTS PASSED (✓)`);
     console.log('======================================================\n');
   } catch (err: any) {
     console.error('\n❌ TEST RUNNER FAILED:', err.message || err);
