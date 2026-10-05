@@ -179,7 +179,7 @@ export function applyScenarioAction(
       };
 
       const generatedEvent: SimulationEvent = {
-        id: `ev-action-${currentTurn}-${Date.now()}`,
+        id: `ev-action-${currentTurn}-war-${action.sourceEntityId}-${action.targetEntityId}`,
         turn: currentTurn,
         title: `Declaration of War: ${srcName} against ${tgtName}`,
         description: action.explanation || `Envoys recalled and formal hostilities declared.`,
@@ -223,7 +223,7 @@ export function applyScenarioAction(
       };
 
       const generatedEvent: SimulationEvent = {
-        id: `ev-action-${currentTurn}-${Date.now()}`,
+        id: `ev-action-${currentTurn}-embargo-${action.sourceEntityId}-${action.targetEntityId}`,
         turn: currentTurn,
         title: `Trade Embargo Imposed: ${srcName} on ${tgtName}`,
         description: action.explanation || `All bilateral freight and merchant transit suspended.`,
