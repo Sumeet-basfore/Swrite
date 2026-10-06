@@ -66,6 +66,14 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const editorInstanceRef = useRef<SwriteEditorInstance | null>(null);
   const saveCoordinatorRef = useRef<SaveCoordinator | null>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
+
+  // Reset scroll position to top when switching documents
+  useEffect(() => {
+    if (scrollViewportRef.current) {
+      scrollViewportRef.current.scrollTop = 0;
+    }
+  }, [documentId]);
 
   // Initialize Save Coordinator
   useEffect(() => {
@@ -286,7 +294,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       )}
 
       {/* Main Canvas Viewport */}
-      <div className="swrite-scroll-viewport">
+      <div ref={scrollViewportRef} className="swrite-scroll-viewport">
         {readingMode ? (
           <div className="swrite-reading-page">
             <div className="reading-page-header">
