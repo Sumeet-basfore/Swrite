@@ -507,4 +507,37 @@ export interface PaginationResult {
   word_count: number;
 }
 
+// Plugin Architecture Types
+export type PluginCapability =
+  | 'project.read'
+  | 'project.write'
+  | 'document.read'
+  | 'document.write'
+  | 'selection.read'
+  | 'commands.register'
+  | 'panels.register'
+  | 'exporters.register';
+
+export interface PluginManifest {
+  id: string;
+  name: string;
+  version: string;
+  api_version: number;
+  description?: string | null;
+  author?: string | null;
+  entry: string;
+  permissions: PluginCapability[];
+}
+
+export interface DiscoveredPlugin {
+  manifest: PluginManifest;
+  is_enabled: boolean;
+  directory_path: string;
+  entry_code?: string | null;
+}
+
+export interface PluginStateConfig {
+  enabled_plugins: Record<string, boolean>;
+}
+
 

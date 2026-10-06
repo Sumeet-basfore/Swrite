@@ -14,6 +14,7 @@ import {
   Columns,
   CheckSquare,
   Printer,
+  Puzzle,
 } from 'lucide-react';
 
 export interface ShellHeaderProps {
@@ -31,6 +32,8 @@ export interface ShellHeaderProps {
   onToggleFocusMode: () => void;
   onToggleDevDrawer: () => void;
   showDevDrawer: boolean;
+  onTogglePlugins?: () => void;
+  showPluginsDrawer?: boolean;
 }
 
 export const ShellHeader: React.FC<ShellHeaderProps> = ({
@@ -48,6 +51,8 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   onToggleFocusMode,
   onToggleDevDrawer,
   showDevDrawer,
+  onTogglePlugins,
+  showPluginsDrawer,
 }) => {
   if (focusMode) return null; // Invisible during deep focus mode
 
@@ -163,6 +168,16 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
         >
           <Clock size={15} />
         </button>
+
+        {onTogglePlugins && (
+          <button
+            onClick={onTogglePlugins}
+            className={`header-btn ${showPluginsDrawer ? 'active' : ''}`}
+            title="Extensions & Plugins"
+          >
+            <Puzzle size={15} />
+          </button>
+        )}
 
         <button
           onClick={onToggleDevDrawer}

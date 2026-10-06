@@ -12,6 +12,7 @@ import { PlanningStudio } from '../planning';
 import { DeskStudio, SplitDeskContainer } from '../desk';
 import { EditStudio } from '../edit';
 import { PublishStudio } from '../publish';
+import { usePlugins, PluginDrawer } from '../plugins';
 import { ContextMenuState, TreeNode } from './types';
 import { SwriteIpc } from '../lib/ipc';
 import './shell.css';
@@ -49,8 +50,18 @@ export const ProjectShell: React.FC = () => {
   const [splitDocument, setSplitDocument] = useState<{ path: string; content: string } | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [showDevDrawer, setShowDevDrawer] = useState(false);
+  const [showPluginsDrawer, setShowPluginsDrawer] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [recentsMenuOpen, setRecentsMenuOpen] = useState(false);
+
+  const {
+    plugins,
+    loading: pluginsLoading,
+    refreshPlugins,
+    togglePlugin,
+  } = usePlugins({
+    projectRoot: activeProject?.root_path || '',
+  });
   const [deleteModalState, setDeleteModalState] = useState<{ open: boolean; targetPath: string | null }>({
     open: false,
     targetPath: null,
@@ -197,6 +208,8 @@ export const ProjectShell: React.FC = () => {
         onToggleFocusMode={() => setFocusMode((prev) => !prev)}
         onToggleDevDrawer={() => setShowDevDrawer((prev) => !prev)}
         showDevDrawer={showDevDrawer}
+        onTogglePlugins={() => setShowPluginsDrawer((prev) => !prev)}
+        showPluginsDrawer={showPluginsDrawer}
       />
 
       <div className="swrite-shell-body">
@@ -404,6 +417,21 @@ export const ProjectShell: React.FC = () => {
                 {entry}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Local Extensions & Plugins Drawer */}
+      {showPluginsDrawer && (
+        <div className="revision-modal-overlay" onClick={() => setShowPluginsDrawer(false)}>
+          <div className="preflight-modal-wrapper" onClick={(e) => e.stopPropagation()}>
+            <PluginDrawer
+              plugins={plugins}
+              loading={pluginsLoading}
+              onTogglePlugin={togglePlugin}
+              onRefresh={refreshPlugins}
+              onClose={() => setShowPluginsDrawer(false)}
+            />
           </div>
         </div>
       )}

@@ -26,6 +26,8 @@ import {
   PublishProfilesData,
   PreflightCheckResult,
   PaginationResult,
+  DiscoveredPlugin,
+  PluginStateConfig,
 } from '../types/ipc';
 
 export const SwriteIpc = {
@@ -260,6 +262,19 @@ export const SwriteIpc = {
 
   publishExport: (projectRoot: string, profile: PublicationProfile, targetAbsolutePath: string) =>
     invoke<string>('publish_export', { projectRoot, profile, targetAbsolutePath }),
+
+  // Milestone 10 — Plugin Architecture
+  pluginsDiscover: (projectRoot: string) =>
+    invoke<DiscoveredPlugin[]>('plugins_discover', { projectRoot }),
+
+  pluginsSetEnabled: (projectRoot: string, pluginId: string, enabled: boolean) =>
+    invoke<PluginStateConfig>('plugins_set_enabled', { projectRoot, pluginId, enabled }),
+
+  pluginsGetData: (projectRoot: string, pluginId: string) =>
+    invoke<any>('plugins_get_data', { projectRoot, pluginId }),
+
+  pluginsSetData: (projectRoot: string, pluginId: string, data: any) =>
+    invoke<boolean>('plugins_set_data', { projectRoot, pluginId, data }),
 };
 
 

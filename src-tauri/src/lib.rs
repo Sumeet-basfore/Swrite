@@ -6,6 +6,7 @@ pub mod error;
 pub mod filesystem;
 pub mod history;
 pub mod planning;
+pub mod plugins;
 pub mod project;
 pub mod publish;
 pub mod recovery;
@@ -92,6 +93,10 @@ pub fn run() {
             commands::publish_preflight_run,
             commands::publish_paginate,
             commands::publish_export,
+            commands::plugins_discover,
+            commands::plugins_set_enabled,
+            commands::plugins_get_data,
+            commands::plugins_set_data,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]
