@@ -117,6 +117,44 @@ export function buildSectionTree(
 }
 
 /**
+ * File role for tree icons. Format tells us *what* a file is;
+ * role tells us what it *means* in a novel project — which is what
+ * the eye actually scans for. Non-markdown formats keep format icons.
+ */
+export type NodeKind =
+  | 'chapter'
+  | 'character'
+  | 'lore'
+  | 'bible'
+  | 'note'
+  | 'document'
+  | 'word'
+  | 'image'
+  | 'text';
+
+export function getNodeKind(
+  node: Pick<TreeNode, 'name' | 'relativePath' | 'format' | 'section'>
+): NodeKind {
+  if (node.format === 'binary') return 'image';
+  if (node.format === 'docx') return 'word';
+  if (node.format === 'txt') return 'text';
+
+  const name = node.name.toLowerCase();
+  const path = node.relativePath.toLowerCase();
+  const section = (node.section || '').toLowerCase();
+  const inPath = (re: RegExp) => re.test(path) || re.test(section);
+
+  if (/^(master|readme)|bible|overview/.test(name)) return 'bible';
+  if (/(^|[\s_.-])notes?([\s_.-]|$)/.test(name)) return 'note';
+  if (inPath(/manuscript/) || /(chapter|scene|part|act|prologue|epilogue|interlude)/.test(name)) {
+    return 'chapter';
+  }
+  if (inPath(/characters?/)) return 'character';
+  if (inPath(/world|lore|magic|factions?|setting|timeline|locations?/)) return 'lore';
+  return 'document';
+}
+
+/**
  * Format bytes to readable string (e.g., 2.4 KB, 14.2 MB)
  */
 export function formatBytes(bytes: number): string {

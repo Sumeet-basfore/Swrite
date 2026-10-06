@@ -10,7 +10,13 @@ import {
   ChevronDown,
   ChevronRight,
   File,
+  BookOpen,
+  User,
+  Globe,
+  BookMarked,
+  NotebookPen,
 } from 'lucide-react';
+import { getNodeKind } from './treeUtils';
 
 export interface FileTreeProps {
   nodes: TreeNode[];
@@ -107,12 +113,23 @@ export const FileTree: React.FC<FileTreeProps> = ({
       );
     }
 
-    switch (node.format) {
-      case 'markdown':
-        return <FileText size={14} className="node-icon md-icon" />;
-      case 'docx':
+    // Role first (what it means), format as fallback (what it is).
+    switch (getNodeKind(node)) {
+      case 'chapter':
+        return <BookOpen size={14} className="node-icon md-icon" />;
+      case 'character':
+        return <User size={14} className="node-icon role-icon" />;
+      case 'lore':
+        return <Globe size={14} className="node-icon role-icon" />;
+      case 'bible':
+        return <BookMarked size={14} className="node-icon role-icon" />;
+      case 'note':
+        return <NotebookPen size={14} className="node-icon role-icon" />;
+      case 'document':
+        return <FileText size={14} className="node-icon role-icon" />;
+      case 'word':
         return <FileCode size={14} className="node-icon docx-icon" />;
-      case 'binary':
+      case 'image':
         return <ImageIcon size={14} className="node-icon img-icon" />;
       default:
         return <File size={14} className="node-icon txt-icon" />;
