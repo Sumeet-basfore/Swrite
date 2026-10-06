@@ -92,3 +92,8 @@ export function useTheme(): ThemeContextValue {
   }
   return context;
 }
+
+/** Null when rendered outside a ThemeProvider (e.g. isolated editor tests). */
+export function useOptionalTheme(): ThemeContextValue | null {
+  return useContext(ThemeContext);
+}

@@ -12,6 +12,7 @@ import {
   ListTree,
   Type,
   Target,
+  Sparkles,
 } from 'lucide-react';
 
 export interface StatusBarProps {
@@ -22,11 +23,15 @@ export interface StatusBarProps {
   readingMode: boolean;
   currentPreset: TypographyPresetId;
   sessionGoalWords?: number;
+  onEditSessionGoal?: () => void;
+  themeName?: string;
+  usingThemePairing?: boolean;
   onToggleMode: () => void;
   onToggleFocusMode: () => void;
   onToggleReadingMode: () => void;
   onToggleOutline: () => void;
   onSelectPreset: (preset: TypographyPresetId) => void;
+  onSelectThemePairing?: () => void;
   onSaveNow?: () => void;
 }
 
@@ -38,11 +43,15 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   readingMode,
   currentPreset,
   sessionGoalWords,
+  onEditSessionGoal,
+  themeName,
+  usingThemePairing,
   onToggleMode,
   onToggleFocusMode,
   onToggleReadingMode,
   onToggleOutline,
   onSelectPreset,
+  onSelectThemePairing,
   onSaveNow,
 }) => {
   const [showPresetMenu, setShowPresetMenu] = useState(false);
@@ -102,15 +111,13 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         {sessionGoalWords && sessionGoalWords > 0 && (
           <>
             <span className="status-divider">·</span>
-            <span
-              className="status-item text-muted"
-              title={`Session progress: ${stats.wordCount} / ${sessionGoalWords} words`}
-            >
-              <Target size={12} className="status-icon" />
-              <span>
-                {Math.min(100, Math.round((stats.wordCount / sessionGoalWords) * 100))}% goal
+            {onEditSessionGoal ? (
+                onClick={onEditSessionGoal}
+                title={`Session: +${sessionDeltaWords ?? 0} words toward a ${sessionGoalWords} goal. Click to change the goal.`}
+                  +{sessionDeltaWords ?? 0} · {Math.min(100, Math.round(((sessionDeltaWords ?? 0) / sessionGoalWords) * 100))}% goal
+                title={`Session progress: ${stats.wordCount} / ${sessionGoalWords} words`}
+                  {Math.min(100, Math.round((stats.wordCount / sessionGoalWords) * 100))}% goal
               </span>
-            </span>
           </>
         )}
 
@@ -147,8 +154,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             className="status-btn"
             title="Typography Preset"
           >
-            <Type size={13} className="status-icon" />
-            <span>{TYPOGRAPHY_PRESETS[currentPreset]?.name || 'Preset'}</span>
+            {usingThemePairing ? (
+              <Sparkles size={13} className="status-icon" />
+            <span>{usingThemePairing ? `${themeName || 'Theme'} pairing` : TYPOGRAPHY_PRESETS[currentPreset]?.name || 'Preset'}</span>
           </button>
 
           {showPresetMenu && (
@@ -156,10 +164,15 @@ export const StatusBar: React.FC<StatusBarProps> = ({
               className="preset-dropdown-menu"
               onMouseLeave={() => setShowPresetMenu(false)}
             >
+              {onSelectThemePairing && (
+                  className={`preset-option ${usingThemePairing ? 'active' : ''}`}
+                    onSelectThemePairing();
+                  <span className="preset-name">{themeName || 'Theme'} pairing</span>
+                  <span className="preset-desc">Follow the active theme's typography</span>
               {(Object.keys(TYPOGRAPHY_PRESETS) as TypographyPresetId[]).map((pid) => (
                 <button
                   key={pid}
-                  className={`preset-option ${pid === currentPreset ? 'active' : ''}`}
+                  className={`preset-option ${pid === currentPreset && !usingThemePairing ? 'active' : ''}`}
                   onClick={() => {
                     onSelectPreset(pid);
                     setShowPresetMenu(false);

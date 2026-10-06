@@ -10,12 +10,15 @@ describe('Milestone 14 — Personal Theme System', () => {
     document.documentElement.removeAttribute('data-theme-mode');
   });
 
-  it('contains exactly 15 distinct built-in themes', () => {
-    expect(THEME_IDS.length).toBe(15);
+  it('contains exactly 29 distinct built-in themes (14 light + 15 dark)', () => {
+    expect(THEME_IDS.length).toBe(29);
     const uniqueIds = new Set(THEME_IDS);
-    expect(uniqueIds.size).toBe(15);
+    expect(uniqueIds.size).toBe(29);
 
-    // Verify all 15 required theme names
+    expect(THEME_IDS.filter((id) => THEMES[id].mode === 'light').length).toBe(14);
+    expect(THEME_IDS.filter((id) => THEMES[id].mode === 'dark').length).toBe(15);
+
+    // Verify all 28 required theme names (original 15 IDs preserved for storage compat)
     const expectedThemes: ThemeId[] = [
       'studio',
       'oled',
@@ -32,6 +35,20 @@ describe('Milestone 14 — Personal Theme System', () => {
       'crimson_gothic',
       'arctic_light',
       'monochrome',
+      'newsprint',
+      'lavender_morning',
+      'sage_field',
+      'maritime_chart',
+      'sandstone',
+      'porcelain',
+      'honeyed_manuscript',
+      'ember_study',
+      'abyssal_ink',
+      'moss_fog',
+      'oxblood_library',
+      'midnight_garden',
+      'graphite_mono',
+      'lamplight',
     ];
     for (const id of expectedThemes) {
       expect(THEMES[id]).toBeDefined();

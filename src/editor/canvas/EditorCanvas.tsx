@@ -14,6 +14,8 @@ import { calculateEditorStats } from '../core/stats';
 import { FormattingCommands } from '../commands/formatting';
 import { TableCommands } from '../commands/tableCommands';
 import { TypographyPresetId, TYPOGRAPHY_PRESETS, getPresetStyleVariables } from './typographyPresets';
+import { useOptionalTheme } from '../../theme/useTheme';
+import { themeTypographyToVars } from '../../theme/themes';
 import { EditorMode, EditorStats, SaveStatus } from '../core/types';
 import './editor.css';
 
@@ -41,6 +43,12 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const [focusMode, setFocusMode] = useState<boolean>(false);
   const [readingMode, setReadingMode] = useState<boolean>(false);
   const [currentPreset, setCurrentPreset] = useState<TypographyPresetId>('literary');
+  const [baseWords] = useState(() => calculateEditorStats(initialContent).wordCount);
+  const [sessionGoal, setSessionGoal] = useState<number>(() => {
+      const raw = localStorage.getItem('swrite_session_goal');
+  // Picking a preset opts out for this session; "Theme pairing" in the menu opts back in.
+  const [presetTouched, setPresetTouched] = useState<boolean>(false);
+  const theme = useOptionalTheme()?.theme ?? null;
   const [stats, setStats] = useState<EditorStats>(() => calculateEditorStats(initialContent));
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('clean');
   const [showFindReplace, setShowFindReplace] = useState<boolean>(false);
@@ -62,8 +70,6 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const [slashState, setSlashState] = useState<{
     open: boolean;
     query: string;
-    position: { top: number; left: number };
-  }>({ open: false, query: '', position: { top: 0, left: 0 } });
 
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const editorInstanceRef = useRef<SwriteEditorInstance | null>(null);
@@ -162,7 +168,6 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
           await instance.destroy();
         }
       } catch (err) {
-        console.error('Failed to initialize Milkdown editor:', err);
       }
     }
 
@@ -198,7 +203,6 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       setSlashState({
         open: true,
         query,
-        position: { top: coords.bottom, left: coords.left },
       });
     } else if (slashState.open) {
       setSlashState((s) => ({ ...s, open: false }));
@@ -257,11 +261,18 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     }
   };
 
-  const presetVariables = getPresetStyleVariables(TYPOGRAPHY_PRESETS[currentPreset] || TYPOGRAPHY_PRESETS.literary);
+  const themeVars = theme?.typography ? themeTypographyToVars(theme.typography) : null;
+  const presetVars = getPresetStyleVariables(TYPOGRAPHY_PRESETS[currentPreset] || TYPOGRAPHY_PRESETS.literary);
+  // Theme pairing wins until the user explicitly picks a preset (per session + per document).
+  const presetVariables = !presetTouched && themeVars ? themeVars : presetVars;
+    setPresetTouched(false);
+  const handleEditSessionGoal = () => {
+    const raw = window.prompt('Session word goal:', String(sessionGoal));
+    setSessionGoal(n);
+      localStorage.setItem('swrite_session_goal', String(n));
 
   return (
     <div
-      className={`swrite-editor-container ${focusMode ? 'focus-mode' : ''} ${readingMode ? 'reading-mode' : ''}`}
       style={presetVariables as React.CSSProperties}
     >
       {/* Dedicated Workspace Formatting Toolbar (only in Rich mode and not in focus/reading mode) */}
@@ -409,11 +420,17 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
         focusMode={focusMode}
         readingMode={readingMode}
         currentPreset={currentPreset}
+        sessionGoalWords={sessionGoal}
+        sessionDeltaWords={Math.max(0, stats.wordCount - baseWords)}
+        onEditSessionGoal={handleEditSessionGoal}
+        themeName={theme?.name}
+        usingThemePairing={!presetTouched && !!themeVars}
         onToggleMode={handleToggleMode}
         onToggleFocusMode={() => setFocusMode((prev) => !prev)}
         onToggleReadingMode={() => setReadingMode((prev) => !prev)}
         onToggleOutline={() => setShowOutline((prev) => !prev)}
-        onSelectPreset={setCurrentPreset}
+          setPresetTouched(true);
+        onSelectThemePairing={() => setPresetTouched(false)}
         onSaveNow={handleSaveNow}
       />
     </div>
