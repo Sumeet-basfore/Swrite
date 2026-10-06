@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { EditorView } from '@milkdown/prose/view';
 import { filterSlashActions, SlashAction, SlashActionContext } from '../commands/slashCommands';
 import {
@@ -35,10 +35,21 @@ import {
 export interface SlashDropdownProps {
   view: EditorView;
   query: string;
-  position: { top: number; left: number };
+  /**
+   * Viewport-relative cursor rect (ProseMirror coordsAtPos client coords).
+   * The menu uses position:fixed so these map 1:1 — never feed them to an
+   * absolutely-positioned element inside the (relative, overflow:hidden)
+   * editor container or the menu lands far from the cursor and clips.
+   */
+  position: { top: number; bottom: number; left: number };
   context?: SlashActionContext;
   onClose: () => void;
 }
+
+const MENU_WIDTH = 300;
+const EDGE_MARGIN = 8;
+const BELOW_GAP = 6;
+const MIN_ITEMS_HEIGHT = 120;
 
 const ICON_MAP: Record<string, React.FC<{ size: number }>> = {
   Heading1,
@@ -79,8 +90,38 @@ export const SlashDropdown: React.FC<SlashDropdownProps> = ({
   onClose,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [placed, setPlaced] = useState<{ top: number; left: number; itemsMaxHeight: number } | null>(null);
 
   const filtered = filterSlashActions(query);
+
+  // Clamp to the viewport and flip above the cursor when there is no
+  // room below (e.g. cursor near the status bar). Re-runs as the query
+  // narrows and the menu shrinks.
+  useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (!el) return;
+    const height = el.offsetHeight || 320;
+    const width = el.offsetWidth || MENU_WIDTH;
+
+    const spaceBelow = window.innerHeight - position.bottom - EDGE_MARGIN;
+    const spaceAbove = position.top - EDGE_MARGIN;
+    const openBelow = spaceBelow >= Math.min(height, 200) || spaceBelow >= spaceAbove;
+
+    const avail = openBelow ? spaceBelow : spaceAbove;
+    const top = openBelow
+      ? Math.min(position.bottom + BELOW_GAP, window.innerHeight - Math.min(height, avail) - EDGE_MARGIN)
+      : Math.max(EDGE_MARGIN, position.top - BELOW_GAP - height);
+    const left = Math.max(
+      EDGE_MARGIN,
+      Math.min(position.left, window.innerWidth - width - EDGE_MARGIN)
+    );
+    setPlaced({
+      top: Math.max(EDGE_MARGIN, top),
+      left,
+      itemsMaxHeight: Math.max(MIN_ITEMS_HEIGHT, avail - 80),
+    });
+  }, [position, query, filtered.length]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -125,13 +166,21 @@ export const SlashDropdown: React.FC<SlashDropdownProps> = ({
 
   return (
     <div
+      ref={menuRef}
       className="swrite-slash-dropdown"
-      style={{ top: `${position.top + 24}px`, left: `${position.left}px` }}
+      style={{
+        top: `${(placed?.top ?? position.bottom + BELOW_GAP)}px`,
+        left: `${(placed?.left ?? position.left)}px`,
+        visibility: placed ? 'visible' : 'hidden',
+      }}
     >
       <div className="slash-header">
         <span>Insert Block or Command</span>
       </div>
-      <div className="slash-items">
+      <div
+        className="slash-items"
+        style={placed ? { maxHeight: `${placed.itemsMaxHeight}px` } : undefined}
+      >
         {filtered.map((action, idx) => {
           const IconComp = ICON_MAP[action.icon] || Pilcrow;
           const isSelected = idx === selectedIndex;

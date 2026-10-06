@@ -13,6 +13,7 @@ import {
   Type,
   Target,
   Sparkles,
+  Crosshair,
 } from 'lucide-react';
 
 export interface StatusBarProps {
@@ -23,9 +24,12 @@ export interface StatusBarProps {
   readingMode: boolean;
   currentPreset: TypographyPresetId;
   sessionGoalWords?: number;
+  sessionDeltaWords?: number;
   onEditSessionGoal?: () => void;
   themeName?: string;
   usingThemePairing?: boolean;
+  typewriterLock?: boolean;
+  onToggleTypewriterLock?: () => void;
   onToggleMode: () => void;
   onToggleFocusMode: () => void;
   onToggleReadingMode: () => void;
@@ -43,9 +47,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   readingMode,
   currentPreset,
   sessionGoalWords,
+  sessionDeltaWords,
   onEditSessionGoal,
   themeName,
   usingThemePairing,
+  typewriterLock,
+  onToggleTypewriterLock,
   onToggleMode,
   onToggleFocusMode,
   onToggleReadingMode,
@@ -112,12 +119,27 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           <>
             <span className="status-divider">·</span>
             {onEditSessionGoal ? (
+              <button
                 onClick={onEditSessionGoal}
+                className="status-btn"
                 title={`Session: +${sessionDeltaWords ?? 0} words toward a ${sessionGoalWords} goal. Click to change the goal.`}
+              >
+                <Target size={12} className="status-icon" />
+                <span>
                   +{sessionDeltaWords ?? 0} · {Math.min(100, Math.round(((sessionDeltaWords ?? 0) / sessionGoalWords) * 100))}% goal
+                </span>
+              </button>
+            ) : (
+              <span
+                className="status-item text-muted"
                 title={`Session progress: ${stats.wordCount} / ${sessionGoalWords} words`}
+              >
+                <Target size={12} className="status-icon" />
+                <span>
                   {Math.min(100, Math.round((stats.wordCount / sessionGoalWords) * 100))}% goal
+                </span>
               </span>
+            )}
           </>
         )}
 
@@ -156,6 +178,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           >
             {usingThemePairing ? (
               <Sparkles size={13} className="status-icon" />
+            ) : (
+              <Type size={13} className="status-icon" />
+            )}
             <span>{usingThemePairing ? `${themeName || 'Theme'} pairing` : TYPOGRAPHY_PRESETS[currentPreset]?.name || 'Preset'}</span>
           </button>
 
@@ -165,10 +190,17 @@ export const StatusBar: React.FC<StatusBarProps> = ({
               onMouseLeave={() => setShowPresetMenu(false)}
             >
               {onSelectThemePairing && (
+                <button
                   className={`preset-option ${usingThemePairing ? 'active' : ''}`}
+                  onClick={() => {
                     onSelectThemePairing();
+                    setShowPresetMenu(false);
+                  }}
+                >
                   <span className="preset-name">{themeName || 'Theme'} pairing</span>
                   <span className="preset-desc">Follow the active theme's typography</span>
+                </button>
+              )}
               {(Object.keys(TYPOGRAPHY_PRESETS) as TypographyPresetId[]).map((pid) => (
                 <button
                   key={pid}
@@ -187,6 +219,16 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         </div>
 
         <span className="status-divider">·</span>
+
+        {/* Typewriter Lock button */}
+        <button
+          onClick={onToggleTypewriterLock}
+          className={`status-btn ${typewriterLock ? 'active' : ''}`}
+          title="Typewriter lock: dim every paragraph except the one being written (stays on)"
+        >
+          <Crosshair size={13} className="status-icon" />
+          <span>Lock</span>
+        </button>
 
         {/* Reading Mode button */}
         <button

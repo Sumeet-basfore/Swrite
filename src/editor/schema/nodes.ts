@@ -1,6 +1,4 @@
 import { $node } from '@milkdown/utils';
-import { Plugin, PluginKey } from '@milkdown/prose/state';
-import { Decoration, DecorationSet } from '@milkdown/prose/view';
 import { Node as ProseNode } from '@milkdown/prose/model';
 
 /**
@@ -73,42 +71,7 @@ export const pageBreakNode = $node('page_break', () => ({
 }));
 
 /**
- * ProseMirror Plugin for Highlighting / Decorating Active Line & Focus Mode
+ * Active-block marking lives in ./activeBlockPlugin (single decoration +
+ * CSS :not() dimming). A previous per-node dimming plugin was removed:
+ * it was never registered and re-walked the whole doc on every keystroke.
  */
-export const focusModePluginKey = new PluginKey('swrite-focus-mode');
-
-export function createFocusModePlugin(options: { typewriterMode?: boolean; dimInactive?: boolean }) {
-  return new Plugin({
-    key: focusModePluginKey,
-    props: {
-      decorations(state) {
-        if (!options.dimInactive) return DecorationSet.empty;
-        const { selection } = state;
-        const { $from } = selection;
-        const currentBlockPos = $from.before(1);
-        const currentBlock = state.doc.nodeAt(currentBlockPos);
-
-        if (!currentBlock) return DecorationSet.empty;
-
-        const decorations: Decoration[] = [];
-        state.doc.forEach((node, pos) => {
-          if (pos !== currentBlockPos && node.isBlock) {
-            decorations.push(
-              Decoration.node(pos, pos + node.nodeSize, {
-                class: 'swrite-dimmed-paragraph',
-              })
-            );
-          } else if (pos === currentBlockPos) {
-            decorations.push(
-              Decoration.node(pos, pos + node.nodeSize, {
-                class: 'swrite-active-paragraph',
-              })
-            );
-          }
-        });
-
-        return DecorationSet.create(state.doc, decorations);
-      },
-    },
-  });
-}

@@ -7,6 +7,7 @@ import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { EditorView } from '@milkdown/prose/view';
 import { sceneBreakNode, pageBreakNode } from '../schema/nodes';
 import { wikilinkProsePlugin } from '../schema/wikilinkPlugin';
+import { activeBlockProsePlugin } from '../schema/activeBlockPlugin';
 import { handleEditorKeydown, ShortcutCallbacks } from '../commands/shortcuts';
 import { calculateEditorStats } from './stats';
 import { EditorCallbacks } from './types';
@@ -61,6 +62,7 @@ export async function createSwriteEditor(options: CreateEditorOptions): Promise<
     .use(sceneBreakNode)
     .use(pageBreakNode)
     .use(wikilinkProsePlugin({ onNavigateWikilink: options.onNavigateWikilink }))
+    .use(activeBlockProsePlugin())
     .create();
 
   currentView = editor.ctx.get(editorViewCtx);

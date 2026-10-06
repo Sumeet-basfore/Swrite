@@ -597,6 +597,19 @@
   margin-top: 0 !important;
 }
 
+/* Typewriter lock (Nightshift behavior): only the block holding the
+   cursor — marked swrite-active-block by the active-block plugin —
+   renders at full strength. Everything else recedes.
+   :focus-within guard keeps the page readable when the editor is not
+   focused (e.g. cursor sitting in the sidebar search). */
+.swrite-editor-container.typewriter-lock .ProseMirror:focus-within > *:not(.swrite-active-block) {
+  opacity: 0.4;
+}
+
+.swrite-editor-container.typewriter-lock .ProseMirror:focus-within > * {
+  transition: opacity 0.25s ease;
+}
+
 .milkdown .editor p {
   margin-top: 0;
   margin-bottom: var(--editor-paragraph-margin, 1.5em);
@@ -1253,9 +1266,11 @@
   cursor: not-allowed;
 }
 
-/* Slash Dropdown */
+/* Slash Dropdown: fixed so ProseMirror viewport coords map 1:1.
+   (Absolute inside the relative, overflow:hidden editor container
+   misplaces the menu and clips it at the container edge.) */
 .swrite-slash-dropdown {
-  position: absolute;
+  position: fixed;
   z-index: 50;
   width: 300px;
   background-color: var(--bg-page);

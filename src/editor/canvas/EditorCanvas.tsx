@@ -44,11 +44,32 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const [focusMode, setFocusMode] = useState<boolean>(false);
   const [readingMode, setReadingMode] = useState<boolean>(false);
   const [currentPreset, setCurrentPreset] = useState<TypographyPresetId>('literary');
+  // Lamplight session meter: words added since this document was opened,
+  // measured against an editable goal (default 1000). Mount-keyed per
+  // document (see key={selectedFile}), so the base resets on switch.
   const [baseWords] = useState(() => calculateEditorStats(initialContent).wordCount);
   const [sessionGoal, setSessionGoal] = useState<number>(() => {
+    try {
       const raw = localStorage.getItem('swrite_session_goal');
+      const n = raw ? parseInt(raw, 10) : NaN;
+      return Number.isFinite(n) && n > 0 ? n : 1000;
+    } catch {
+      return 1000;
+    }
+  });
+  // Nightshift behavior: dim every block except the one holding the cursor.
+  // Sticky across sessions — a night writer opts in once.
+  const [typewriterLock, setTypewriterLock] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('swrite_typewriter_lock') === '1';
+    } catch {
+      return false;
+    }
+  });
+  // When false, the canvas follows the active theme's bundled typography pairing.
   // Picking a preset opts out for this session; "Theme pairing" in the menu opts back in.
   const [presetTouched, setPresetTouched] = useState<boolean>(false);
+  // Null outside ThemeProvider (isolated tests) — falls back to preset vars.
   const theme = useOptionalTheme()?.theme ?? null;
   const [stats, setStats] = useState<EditorStats>(() => calculateEditorStats(initialContent));
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('clean');
@@ -71,6 +92,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const [slashState, setSlashState] = useState<{
     open: boolean;
     query: string;
+    position: { top: number; bottom: number; left: number };
+  }>({ open: false, query: '', position: { top: 0, bottom: 0, left: 0 } });
 
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const editorInstanceRef = useRef<SwriteEditorInstance | null>(null);
@@ -205,6 +228,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       setSlashState({
         open: true,
         query,
+        position: { top: coords.top, bottom: coords.bottom, left: coords.left },
       });
     } else if (slashState.open) {
       setSlashState((s) => ({ ...s, open: false }));
@@ -267,14 +291,39 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const presetVars = getPresetStyleVariables(TYPOGRAPHY_PRESETS[currentPreset] || TYPOGRAPHY_PRESETS.literary);
   // Theme pairing wins until the user explicitly picks a preset (per session + per document).
   const presetVariables = !presetTouched && themeVars ? themeVars : presetVars;
+
+  useEffect(() => {
     setPresetTouched(false);
+  }, [documentId]);
+
   const handleEditSessionGoal = () => {
     const raw = window.prompt('Session word goal:', String(sessionGoal));
+    if (raw === null) return;
+    const n = parseInt(raw, 10);
+    if (!Number.isFinite(n) || n <= 0) return;
     setSessionGoal(n);
+    try {
       localStorage.setItem('swrite_session_goal', String(n));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const toggleTypewriterLock = () => {
+    setTypewriterLock((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('swrite_typewriter_lock', next ? '1' : '0');
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
 
   return (
     <div
+      className={`swrite-editor-container ${focusMode ? 'focus-mode' : ''} ${readingMode ? 'reading-mode' : ''} ${typewriterLock ? 'typewriter-lock' : ''}`}
       style={presetVariables as React.CSSProperties}
     >
       {/* Dedicated Workspace Formatting Toolbar (only in Rich mode and not in focus/reading mode) */}
@@ -427,11 +476,16 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
         onEditSessionGoal={handleEditSessionGoal}
         themeName={theme?.name}
         usingThemePairing={!presetTouched && !!themeVars}
+        typewriterLock={typewriterLock}
+        onToggleTypewriterLock={toggleTypewriterLock}
         onToggleMode={handleToggleMode}
         onToggleFocusMode={() => setFocusMode((prev) => !prev)}
         onToggleReadingMode={() => setReadingMode((prev) => !prev)}
         onToggleOutline={() => setShowOutline((prev) => !prev)}
+        onSelectPreset={(pid) => {
+          setCurrentPreset(pid);
           setPresetTouched(true);
+        }}
         onSelectThemePairing={() => setPresetTouched(false)}
         onSaveNow={handleSaveNow}
       />
