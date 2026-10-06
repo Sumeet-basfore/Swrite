@@ -24,6 +24,7 @@ export interface EditorCanvasProps {
   onContentChange?: (markdown: string) => void;
   onSave?: (markdown: string) => Promise<void>;
   onSaveStatusChange?: (status: SaveStatus) => void;
+  onNavigateWikilink?: (target: string) => void;
   readOnly?: boolean;
 }
 
@@ -33,6 +34,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   initialContent,
   onContentChange,
   onSaveStatusChange,
+  onNavigateWikilink,
   readOnly = false,
 }) => {
   const [mode, setMode] = useState<EditorMode>('rich');
@@ -118,6 +120,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
           root: editorContainerRef.current,
           initialMarkdown: bodyMarkdownRef.current,
           editable: !readOnly,
+          onNavigateWikilink,
           callbacks: {
             onChange: (bodyMarkdown, newStats) => {
               bodyMarkdownRef.current = bodyMarkdown;
@@ -308,7 +311,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
             </div>
             <div className="reading-prose-content">
               {bodyMarkdownRef.current.split('\n\n').map((paragraph, i) => (
-                <p key={i}>{paragraph}</p>
+                <p key={i}>{renderParagraphWithWikilinks(paragraph, onNavigateWikilink)}</p>
               ))}
             </div>
           </div>
@@ -416,3 +419,46 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     </div>
   );
 };
+
+function renderParagraphWithWikilinks(text: string, onNavigate?: (target: string) => void) {
+  const parts: React.ReactNode[] = [];
+  const regex = /\[\[([^\]\n]+?)\]\]/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+    const inner = match[1].trim();
+    let target = inner;
+    let label = inner;
+    if (inner.includes('|')) {
+      const split = inner.split('|');
+      target = split[0].trim();
+      label = split.slice(1).join('|').trim();
+    }
+    parts.push(
+      <span
+        key={match.index}
+        className="swrite-wikilink"
+        data-target={target}
+        onClick={(e) => {
+          e.preventDefault();
+          onNavigate?.(target);
+        }}
+        title={`Open [[${target}]]`}
+      >
+        {label || target}
+      </span>
+    );
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : text;
+}
+

@@ -10,7 +10,7 @@ import { NewDocumentDialog } from './NewDocumentDialog';
 import { ImportModal } from './ImportModal';
 import { DocumentTabBar } from './DocumentTabBar';
 import { ThemePickerModal } from '../theme';
-import { EditorCanvas } from '../editor';
+import { EditorCanvas, resolveWikilink } from '../editor';
 import { PlanningStudio } from '../planning';
 import { DeskStudio, SplitDeskContainer } from '../desk';
 import { EditStudio } from '../edit';
@@ -197,6 +197,24 @@ export const ProjectShell: React.FC = () => {
     });
   };
 
+  const handleNavigateWikilink = (target: string) => {
+    const allFiles = [
+      ...(filesView?.manuscript_files || []),
+      ...(filesView?.planning_files || []),
+      ...(filesView?.desk_files || []),
+      ...(filesView?.asset_files || []),
+      ...(filesView?.other_visible_files || []),
+    ];
+
+    const resolved = resolveWikilink(target, allFiles);
+    if (resolved) {
+      setStudioMode('write');
+      openDocument(resolved);
+    } else {
+      console.warn(`Wikilink target "[[${target}]]" could not be resolved in the project.`);
+    }
+  };
+
   return (
     <div className={`swrite-app-shell ${focusMode ? 'in-focus-mode' : ''}`}>
       {/* Top Header */}
@@ -337,6 +355,7 @@ export const ProjectShell: React.FC = () => {
               documentId={selectedFile}
               relativePath={selectedFile}
               initialContent={fileContent}
+              onNavigateWikilink={handleNavigateWikilink}
               onSaveStatusChange={(status) => {
                 markTabDirty(selectedFile, status === 'dirty');
               }}

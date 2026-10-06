@@ -18,3 +18,5 @@ export * from './canvas/FindReplaceBar';
 export * from './canvas/DocumentOutline';
 export * from './canvas/LinkImageModals';
 export * from './canvas/typographyPresets';
+export * from './links/wikilinkResolver';
+export * from './schema/wikilinkPlugin';
