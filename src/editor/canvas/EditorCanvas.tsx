@@ -4,8 +4,14 @@ import { SourceEditor } from '../source/SourceEditor';
 import { StatusBar } from './StatusBar';
 import { FormattingBar } from './FormattingBar';
 import { SlashDropdown } from './SlashDropdown';
+import { FindReplaceBar } from './FindReplaceBar';
+import { DocumentOutline } from './DocumentOutline';
+import { LinkModal, ImageModal, TableModal } from './LinkImageModals';
 import { SaveCoordinator } from '../sync/saveCoordinator';
 import { calculateEditorStats } from '../core/stats';
+import { FormattingCommands } from '../commands/formatting';
+import { TableCommands } from '../commands/tableCommands';
+import { TypographyPresetId, TYPOGRAPHY_PRESETS, getPresetStyleVariables } from './typographyPresets';
 import { EditorMode, EditorStats, SaveStatus } from '../core/types';
 import './editor.css';
 
@@ -27,8 +33,18 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 }) => {
   const [mode, setMode] = useState<EditorMode>('rich');
   const [focusMode, setFocusMode] = useState<boolean>(false);
+  const [readingMode, setReadingMode] = useState<boolean>(false);
+  const [currentPreset, setCurrentPreset] = useState<TypographyPresetId>('literary');
   const [stats, setStats] = useState<EditorStats>(() => calculateEditorStats(initialContent));
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('clean');
+  const [showFindReplace, setShowFindReplace] = useState<boolean>(false);
+  const [showOutline, setShowOutline] = useState<boolean>(false);
+
+  // Modals state
+  const [linkModalOpen, setLinkModalOpen] = useState<boolean>(false);
+  const [imageModalOpen, setImageModalOpen] = useState<boolean>(false);
+  const [tableModalOpen, setTableModalOpen] = useState<boolean>(false);
+
   const [slashState, setSlashState] = useState<{
     open: boolean;
     query: string;
@@ -66,7 +82,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 
   // Initialize Milkdown Rich Editor
   useEffect(() => {
-    if (mode !== 'rich' || !editorContainerRef.current) return;
+    if (mode !== 'rich' || readingMode || !editorContainerRef.current) return;
 
     let isMounted = true;
 
@@ -91,8 +107,23 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
           },
           shortcutCallbacks: {
             onToggleFocusMode: () => setFocusMode((prev) => !prev),
+            onToggleReadingMode: () => setReadingMode((prev) => !prev),
             onToggleSourceMode: () => handleToggleMode(),
             onSave: () => handleSaveNow(),
+            onFind: () => setShowFindReplace(true),
+            onToggleOutline: () => setShowOutline((prev) => !prev),
+            onAddComment: () => {
+              const view = instance.getView();
+              if (view) {
+                FormattingCommands.insertBookmark(view, 'Comment marker');
+              }
+            },
+            onAddBookmark: () => {
+              const view = instance.getView();
+              if (view) {
+                FormattingCommands.insertBookmark(view, 'Bookmark');
+              }
+            },
           },
         });
 
@@ -115,7 +146,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
         editorInstanceRef.current = null;
       }
     };
-  }, [mode, readOnly]);
+  }, [mode, readingMode, readOnly]);
 
   const checkForSlashCommand = (instance: SwriteEditorInstance) => {
     const view = instance.getView();
@@ -169,16 +200,73 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     }
   };
 
+  const handleReplaceContent = (newMarkdown: string) => {
+    currentContentRef.current = newMarkdown;
+    const newStats = calculateEditorStats(newMarkdown);
+    setStats(newStats);
+    saveCoordinatorRef.current?.updateContent(newMarkdown);
+    onContentChange?.(newMarkdown);
+
+    if (mode === 'rich' && editorInstanceRef.current) {
+      editorInstanceRef.current.setMarkdown(newMarkdown);
+    }
+  };
+
+  const presetVariables = getPresetStyleVariables(TYPOGRAPHY_PRESETS[currentPreset] || TYPOGRAPHY_PRESETS.literary);
+
   return (
-    <div className={`swrite-editor-container ${focusMode ? 'focus-mode' : ''}`}>
-      {/* Floating Formatting Toolbar (only in Rich mode and not in deep focus) */}
-      {mode === 'rich' && !focusMode && (
-        <FormattingBar getView={() => editorInstanceRef.current?.getView() || null} />
+    <div
+      className={`swrite-editor-container ${focusMode ? 'focus-mode' : ''} ${readingMode ? 'reading-mode' : ''}`}
+      style={presetVariables as React.CSSProperties}
+    >
+      {/* Floating Formatting Toolbar (only in Rich mode and not in focus/reading mode) */}
+      {mode === 'rich' && !focusMode && !readingMode && (
+        <FormattingBar
+          getView={() => editorInstanceRef.current?.getView() || null}
+          onOpenLinkModal={() => setLinkModalOpen(true)}
+          onOpenImageModal={() => setImageModalOpen(true)}
+          onOpenTableModal={() => setTableModalOpen(true)}
+          onOpenCommentModal={() => {
+            const view = editorInstanceRef.current?.getView();
+            if (view) FormattingCommands.insertBookmark(view, 'Comment annotation');
+          }}
+          onAddBookmark={() => {
+            const view = editorInstanceRef.current?.getView();
+            if (view) FormattingCommands.insertBookmark(view, 'Bookmark');
+          }}
+        />
+      )}
+
+      {/* Embedded Find & Replace Bar */}
+      {showFindReplace && (
+        <FindReplaceBar
+          getView={() => editorInstanceRef.current?.getView() || null}
+          getRawContent={() => currentContentRef.current}
+          onReplaceContent={handleReplaceContent}
+          onClose={() => setShowFindReplace(false)}
+        />
       )}
 
       {/* Main Canvas Viewport */}
       <div className="swrite-scroll-viewport">
-        {mode === 'rich' ? (
+        {readingMode ? (
+          <div className="swrite-reading-page">
+            <div className="reading-page-header">
+              <span className="reading-badge">Reading Mode</span>
+              <button
+                className="exit-reading-btn"
+                onClick={() => setReadingMode(false)}
+              >
+                Exit Reading Mode (Esc)
+              </button>
+            </div>
+            <div className="reading-prose-content">
+              {currentContentRef.current.split('\n\n').map((paragraph, i) => (
+                <p key={i}>{paragraph}</p>
+              ))}
+            </div>
+          </div>
+        ) : mode === 'rich' ? (
           <div className="swrite-manuscript-page">
             <div ref={editorContainerRef} className="milkdown-wrapper" />
           </div>
@@ -193,13 +281,73 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
         )}
       </div>
 
+      {/* Document Outline Drawer */}
+      {showOutline && (
+        <DocumentOutline
+          markdown={currentContentRef.current}
+          onSelectLine={(_line) => {
+            setShowOutline(false);
+          }}
+          onClose={() => setShowOutline(false)}
+        />
+      )}
+
       {/* Slash Commands Dropdown */}
       {slashState.open && editorInstanceRef.current?.getView() && (
         <SlashDropdown
           view={editorInstanceRef.current.getView()!}
           query={slashState.query}
           position={slashState.position}
+          context={{
+            onOpenFind: () => setShowFindReplace(true),
+            onOpenLinkModal: () => setLinkModalOpen(true),
+            onOpenImageModal: () => setImageModalOpen(true),
+            onToggleFocusMode: () => setFocusMode((v) => !v),
+            onToggleReadingMode: () => setReadingMode((v) => !v),
+          }}
           onClose={() => setSlashState((s) => ({ ...s, open: false }))}
+        />
+      )}
+
+      {/* Link Modal */}
+      {linkModalOpen && (
+        <LinkModal
+          onConfirm={(url, title) => {
+            const view = editorInstanceRef.current?.getView();
+            if (view) {
+              FormattingCommands.insertLink(view, url, title);
+            }
+            setLinkModalOpen(false);
+          }}
+          onClose={() => setLinkModalOpen(false)}
+        />
+      )}
+
+      {/* Image Modal */}
+      {imageModalOpen && (
+        <ImageModal
+          onConfirm={(src, alt, title) => {
+            const view = editorInstanceRef.current?.getView();
+            if (view) {
+              FormattingCommands.insertImage(view, src, alt, title);
+            }
+            setImageModalOpen(false);
+          }}
+          onClose={() => setImageModalOpen(false)}
+        />
+      )}
+
+      {/* Table Modal */}
+      {tableModalOpen && (
+        <TableModal
+          onConfirm={(rows, cols) => {
+            const view = editorInstanceRef.current?.getView();
+            if (view) {
+              TableCommands.insertTable(view, rows, cols);
+            }
+            setTableModalOpen(false);
+          }}
+          onClose={() => setTableModalOpen(false)}
         />
       )}
 
@@ -209,8 +357,13 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
         saveStatus={saveStatus}
         mode={mode}
         focusMode={focusMode}
+        readingMode={readingMode}
+        currentPreset={currentPreset}
         onToggleMode={handleToggleMode}
         onToggleFocusMode={() => setFocusMode((prev) => !prev)}
+        onToggleReadingMode={() => setReadingMode((prev) => !prev)}
+        onToggleOutline={() => setShowOutline((prev) => !prev)}
+        onSelectPreset={setCurrentPreset}
         onSaveNow={handleSaveNow}
       />
     </div>

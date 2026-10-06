@@ -1,14 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { EditorMode, EditorStats, SaveStatus } from '../core/types';
-import { BookOpen, Edit3, Eye, Check, AlertCircle, RefreshCw } from 'lucide-react';
+import { TypographyPresetId, TYPOGRAPHY_PRESETS } from './typographyPresets';
+import {
+  BookOpen,
+  Edit3,
+  Eye,
+  Book,
+  Check,
+  AlertCircle,
+  RefreshCw,
+  ListTree,
+  Type,
+  Target,
+} from 'lucide-react';
 
 export interface StatusBarProps {
   stats: EditorStats;
   saveStatus: SaveStatus;
   mode: EditorMode;
   focusMode: boolean;
+  readingMode: boolean;
+  currentPreset: TypographyPresetId;
+  sessionGoalWords?: number;
   onToggleMode: () => void;
   onToggleFocusMode: () => void;
+  onToggleReadingMode: () => void;
+  onToggleOutline: () => void;
+  onSelectPreset: (preset: TypographyPresetId) => void;
   onSaveNow?: () => void;
 }
 
@@ -17,10 +35,18 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   saveStatus,
   mode,
   focusMode,
+  readingMode,
+  currentPreset,
+  sessionGoalWords,
   onToggleMode,
   onToggleFocusMode,
+  onToggleReadingMode,
+  onToggleOutline,
+  onSelectPreset,
   onSaveNow,
 }) => {
+  const [showPresetMenu, setShowPresetMenu] = useState(false);
+
   const renderSaveIndicator = () => {
     switch (saveStatus) {
       case 'saving':
@@ -72,6 +98,22 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <span className="status-item font-medium">
           {stats.wordCount.toLocaleString()} {stats.wordCount === 1 ? 'word' : 'words'}
         </span>
+
+        {sessionGoalWords && sessionGoalWords > 0 && (
+          <>
+            <span className="status-divider">·</span>
+            <span
+              className="status-item text-muted"
+              title={`Session progress: ${stats.wordCount} / ${sessionGoalWords} words`}
+            >
+              <Target size={12} className="status-icon" />
+              <span>
+                {Math.min(100, Math.round((stats.wordCount / sessionGoalWords) * 100))}% goal
+              </span>
+            </span>
+          </>
+        )}
+
         <span className="status-divider">·</span>
         <span className="status-item text-muted">
           {stats.charCount.toLocaleString()} chars
@@ -88,22 +130,79 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
         <span className="status-divider">·</span>
 
+        {/* Outline / Bookmarks button */}
         <button
-          onClick={onToggleMode}
-          className={`status-btn ${mode === 'source' ? 'active' : ''}`}
-          title="Toggle Markdown Source Mode (Ctrl+/)"
+          onClick={onToggleOutline}
+          className="status-btn"
+          title="Document Outline & Bookmarks (Mod+Shift+O)"
         >
-          <Edit3 size={13} className="status-icon" />
-          <span>{mode === 'rich' ? 'Rich' : 'Markdown'}</span>
+          <ListTree size={13} className="status-icon" />
+          <span>Outline</span>
         </button>
 
+        {/* Typography Preset selector */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowPresetMenu((v) => !v)}
+            className="status-btn"
+            title="Typography Preset"
+          >
+            <Type size={13} className="status-icon" />
+            <span>{TYPOGRAPHY_PRESETS[currentPreset]?.name || 'Preset'}</span>
+          </button>
+
+          {showPresetMenu && (
+            <div
+              className="preset-dropdown-menu"
+              onMouseLeave={() => setShowPresetMenu(false)}
+            >
+              {(Object.keys(TYPOGRAPHY_PRESETS) as TypographyPresetId[]).map((pid) => (
+                <button
+                  key={pid}
+                  className={`preset-option ${pid === currentPreset ? 'active' : ''}`}
+                  onClick={() => {
+                    onSelectPreset(pid);
+                    setShowPresetMenu(false);
+                  }}
+                >
+                  <span className="preset-name">{TYPOGRAPHY_PRESETS[pid].name}</span>
+                  <span className="preset-desc">{TYPOGRAPHY_PRESETS[pid].description}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <span className="status-divider">·</span>
+
+        {/* Reading Mode button */}
+        <button
+          onClick={onToggleReadingMode}
+          className={`status-btn ${readingMode ? 'active' : ''}`}
+          title="Toggle Reading Mode (Mod+Shift+R)"
+        >
+          <Book size={13} className="status-icon" />
+          <span>Read</span>
+        </button>
+
+        {/* Focus Mode button */}
         <button
           onClick={onToggleFocusMode}
           className={`status-btn ${focusMode ? 'active' : ''}`}
-          title="Toggle Focus Mode (Ctrl+Shift+F)"
+          title="Toggle Focus Mode (Mod+Shift+F)"
         >
           <Eye size={13} className="status-icon" />
           <span>Focus</span>
+        </button>
+
+        {/* Mode button */}
+        <button
+          onClick={onToggleMode}
+          className={`status-btn ${mode === 'source' ? 'active' : ''}`}
+          title="Toggle Markdown Source Mode (Mod+/)"
+        >
+          <Edit3 size={13} className="status-icon" />
+          <span>{mode === 'rich' ? 'Rich' : 'Markdown'}</span>
         </button>
       </div>
     </footer>

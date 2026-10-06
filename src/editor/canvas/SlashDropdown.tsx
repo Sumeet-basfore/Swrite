@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { EditorView } from '@milkdown/prose/view';
-import { SLASH_ACTIONS, SlashAction } from '../commands/slashCommands';
+import { filterSlashActions, SlashAction, SlashActionContext } from '../commands/slashCommands';
 import {
   Heading1,
   Heading2,
@@ -11,12 +11,32 @@ import {
   Quote,
   List,
   ListOrdered,
+  CheckSquare,
+  Table,
+  Link,
+  Image,
+  Minus,
+  StickyNote,
+  MessageSquare,
+  Bookmark,
+  Feather,
+  BookOpen,
+  BarChart2,
+  Search,
+  Eye,
+  Book,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  Code,
 } from 'lucide-react';
 
 export interface SlashDropdownProps {
   view: EditorView;
   query: string;
   position: { top: number; left: number };
+  context?: SlashActionContext;
   onClose: () => void;
 }
 
@@ -25,27 +45,42 @@ const ICON_MAP: Record<string, React.FC<{ size: number }>> = {
   Heading2,
   Heading3,
   Pilcrow,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  Code,
   Sparkles,
   FileText,
   Quote,
   List,
   ListOrdered,
+  CheckSquare,
+  Table,
+  Link,
+  Image,
+  Minus,
+  StickyNote,
+  MessageSquare,
+  Bookmark,
+  Feather,
+  BookOpen,
+  BarChart2,
+  Search,
+  Eye,
+  Book,
 };
 
 export const SlashDropdown: React.FC<SlashDropdownProps> = ({
   view,
   query,
   position,
+  context,
   onClose,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const filtered = SLASH_ACTIONS.filter(
-    (action) =>
-      action.title.toLowerCase().includes(query.toLowerCase()) ||
-      action.subtitle.toLowerCase().includes(query.toLowerCase()) ||
-      action.keywords.some((k) => k.includes(query.toLowerCase()))
-  );
+  const filtered = filterSlashActions(query);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -75,14 +110,14 @@ export const SlashDropdown: React.FC<SlashDropdownProps> = ({
   }, [filtered, selectedIndex]);
 
   const executeAction = (action: SlashAction) => {
-    // Delete the slash character typed before running command
+    // Delete the slash characters typed before running command
     const { state, dispatch } = view;
     const { $from } = state.selection;
     const slashStart = Math.max(0, $from.pos - (query.length + 1));
     const tr = state.tr.delete(slashStart, $from.pos);
     dispatch(tr);
 
-    action.run(view);
+    action.run(view, context);
     onClose();
   };
 
@@ -94,7 +129,7 @@ export const SlashDropdown: React.FC<SlashDropdownProps> = ({
       style={{ top: `${position.top + 24}px`, left: `${position.left}px` }}
     >
       <div className="slash-header">
-        <span>Insert Block</span>
+        <span>Insert Block or Command</span>
       </div>
       <div className="slash-items">
         {filtered.map((action, idx) => {

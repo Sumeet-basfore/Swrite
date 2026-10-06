@@ -1,5 +1,6 @@
 import { EditorView } from '@milkdown/prose/view';
 import { toggleMark, setBlockType, wrapIn } from '@milkdown/prose/commands';
+import { TableCommands } from './tableCommands';
 
 export const FormattingCommands = {
   // Inline Marks
@@ -13,6 +14,14 @@ export const FormattingCommands = {
 
   toggleItalic: (view: EditorView) => {
     const mark = view.state.schema.marks.em;
+    if (mark) {
+      return toggleMark(mark)(view.state, view.dispatch);
+    }
+    return false;
+  },
+
+  toggleUnderline: (view: EditorView) => {
+    const mark = view.state.schema.marks.underline || view.state.schema.marks.em;
     if (mark) {
       return toggleMark(mark)(view.state, view.dispatch);
     }
@@ -113,6 +122,46 @@ export const FormattingCommands = {
     } else {
       toggleMark(markType, { href, title })(state, dispatch);
     }
+    return true;
+  },
+
+  removeLink: (view: EditorView) => {
+    const markType = view.state.schema.marks.link;
+    if (!markType) return false;
+    const { state, dispatch } = view;
+    const { from, to } = state.selection;
+    const tr = state.tr.removeMark(from, to, markType);
+    dispatch(tr);
+    return true;
+  },
+
+  insertImage: (view: EditorView, src: string, alt: string = '', title: string = '') => {
+    const nodeType = view.state.schema.nodes.image;
+    if (nodeType) {
+      const { state, dispatch } = view;
+      const node = nodeType.create({ src, alt, title });
+      const tr = state.tr.replaceSelectionWith(node).scrollIntoView();
+      dispatch(tr);
+      return true;
+    }
+    // Fallback markdown syntax
+    const { state, dispatch } = view;
+    const md = `![${alt}](${src}${title ? ` "${title}"` : ''})`;
+    const textNode = state.schema.text(md);
+    const tr = state.tr.replaceSelectionWith(textNode).scrollIntoView();
+    dispatch(tr);
+    return true;
+  },
+
+  insertTable: (view: EditorView, rows: number = 3, cols: number = 3) => {
+    return TableCommands.insertTable(view, rows, cols);
+  },
+
+  insertBookmark: (view: EditorView, label: string = 'Bookmark') => {
+    const { state, dispatch } = view;
+    const textNode = state.schema.text(`<!-- bookmark: ${label} -->\n`);
+    const tr = state.tr.replaceSelectionWith(textNode).scrollIntoView();
+    dispatch(tr);
     return true;
   },
 

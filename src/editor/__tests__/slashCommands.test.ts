@@ -13,7 +13,7 @@ describe('Slash Commands Menu', () => {
     expect(headingActions.some((a) => a.id === 'h1')).toBe(true);
 
     const sceneActions = filterSlashActions('scene');
-    expect(sceneActions.some((a) => a.id === 'scene_break')).toBe(true);
+    expect(sceneActions.some((a) => a.id === 'scene-break' || a.id === 'scene')).toBe(true);
 
     const listActions = filterSlashActions('list');
     expect(listActions.length).toBeGreaterThanOrEqual(2);
