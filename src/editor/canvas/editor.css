@@ -279,12 +279,17 @@
   padding: 40px 20px 140px 20px;
   display: flex;
   justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
 }
 
 /* Centered Manuscript Page */
 .swrite-manuscript-page {
+  box-sizing: border-box;
   width: 100%;
   max-width: var(--editor-max-width, 720px);
+  min-width: 0;
   background-color: var(--bg-page);
   min-height: 85vh;
   padding: 64px 72px;
@@ -292,6 +297,7 @@
   border-radius: 4px;
   border: 1px solid var(--border-quiet);
   transition: all 0.25s ease;
+  overflow-wrap: anywhere;
 }
 
 .focus-mode .swrite-manuscript-page {
@@ -302,14 +308,17 @@
 
 /* Reading Mode Page */
 .swrite-reading-page {
+  box-sizing: border-box;
   width: 100%;
   max-width: var(--editor-max-width, 720px);
+  min-width: 0;
   background-color: var(--bg-page);
   min-height: 85vh;
   padding: 56px 72px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
   border-radius: 6px;
   border: 1px solid var(--border-quiet);
+  overflow-wrap: anywhere;
 }
 
 .reading-page-header {
@@ -344,6 +353,11 @@
   color: var(--text-ink);
 }
 
+.reading-prose-content {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .reading-prose-content p {
   font-family: var(--editor-font-family, var(--font-serif));
   font-size: var(--editor-font-size, 18px);
@@ -351,14 +365,181 @@
   margin-bottom: var(--editor-paragraph-margin, 1.5em);
   text-indent: var(--editor-text-indent, 0px);
   color: var(--text-ink);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Document Metadata Header Card */
+.swrite-document-metadata-card {
+  margin-bottom: 28px;
+  background-color: var(--bg-desk);
+  border: 1px solid var(--border-quiet);
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.metadata-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  background-color: var(--bg-desk);
+  transition: background-color 0.15s ease;
+}
+
+.metadata-card-header:hover {
+  background-color: var(--border-quiet);
+}
+
+.metadata-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.metadata-icon {
+  color: var(--accent-soft);
+}
+
+.metadata-title {
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.metadata-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: var(--border-quiet);
+  color: var(--text-ink);
+  text-transform: uppercase;
+}
+
+.metadata-badge.status-draft {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.metadata-badge.status-revised,
+.metadata-badge.status-complete {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.metadata-chip {
+  font-size: 0.75rem;
+  color: var(--text-ink);
+  background-color: var(--bg-page);
+  border: 1px solid var(--border-quiet);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.metadata-chip strong {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.metadata-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.metadata-card-body {
+  padding: 12px;
+  border-top: 1px solid var(--border-quiet);
+  background-color: var(--bg-page);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.metadata-grid-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.775rem;
+  overflow-wrap: anywhere;
+}
+
+.metadata-key {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.metadata-val {
+  color: var(--text-ink);
+}
+
+.metadata-source-preview {
+  margin-top: 4px;
+}
+
+.source-preview-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+
+.metadata-raw-block {
+  margin: 0;
+  padding: 8px 10px;
+  background-color: var(--bg-desk);
+  border: 1px solid var(--border-quiet);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-ink);
+  overflow-x: auto;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Prose Typography inside Milkdown */
-.milkdown {
-  outline: none;
+.milkdown-wrapper {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
-.milkdown .editor {
+.milkdown {
+  outline: none;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.milkdown .editor,
+.ProseMirror {
   outline: none;
   font-family: var(--editor-font-family, var(--font-serif));
   font-size: var(--editor-font-size, 18px);
@@ -366,12 +547,21 @@
   color: var(--text-ink);
   letter-spacing: -0.01em;
   word-break: break-word;
+  overflow-wrap: anywhere;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .milkdown .editor p {
   margin-top: 0;
   margin-bottom: var(--editor-paragraph-margin, 1.5em);
   text-indent: var(--editor-text-indent, 0px);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .milkdown .editor h1 {
@@ -384,6 +574,10 @@
   letter-spacing: -0.025em;
   color: var(--text-ink);
   text-indent: 0 !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .milkdown .editor h2 {
@@ -396,6 +590,10 @@
   letter-spacing: -0.02em;
   color: var(--text-ink);
   text-indent: 0 !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .milkdown .editor h3 {
@@ -407,6 +605,23 @@
   margin-bottom: 0.5em;
   color: var(--text-ink);
   text-indent: 0 !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.milkdown .editor h4,
+.milkdown .editor h5,
+.milkdown .editor h6 {
+  font-family: var(--editor-heading-family, var(--font-sans));
+  font-weight: 600;
+  color: var(--text-ink);
+  text-indent: 0 !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .milkdown .editor blockquote {
@@ -419,6 +634,10 @@
   font-style: italic;
   color: var(--text-muted);
   text-indent: 0 !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .milkdown .editor ul,
@@ -426,10 +645,16 @@
   padding-left: 1.5em;
   margin-bottom: 1.5em;
   text-indent: 0 !important;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .milkdown .editor li {
   margin-bottom: 0.4em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .milkdown .editor code {
@@ -438,6 +663,10 @@
   background-color: var(--border-quiet);
   padding: 0.15em 0.35em;
   border-radius: 3px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .milkdown .editor pre {
@@ -450,14 +679,47 @@
   line-height: 1.5;
   margin: 1.5em 0;
   text-indent: 0 !important;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.milkdown .editor pre code {
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+  background: transparent;
+  padding: 0;
+}
+
+/* Links inside editor */
+.milkdown .editor a {
+  color: var(--accent-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Images inside editor */
+.milkdown .editor img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1.5em auto;
+  border-radius: 4px;
+  box-sizing: border-box;
+  object-fit: contain;
 }
 
 /* Tables inside editor */
 .milkdown .editor table {
   width: 100%;
+  max-width: 100%;
+  table-layout: auto;
   border-collapse: collapse;
   margin: 1.5em 0;
   font-size: 0.95em;
+  box-sizing: border-box;
 }
 
 .milkdown .editor th,
@@ -465,11 +727,25 @@
   border: 1px solid var(--border-quiet);
   padding: 8px 12px;
   text-align: left;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  box-sizing: border-box;
+  min-width: 40px;
 }
 
 .milkdown .editor th {
   background-color: var(--bg-desk);
   font-weight: 600;
+}
+
+/* Horizontal Rule */
+.milkdown .editor hr {
+  border: none;
+  border-top: 1px solid var(--border-quiet);
+  margin: 2em 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Scene Break Custom Node */
@@ -480,6 +756,8 @@
   margin: 2.5em 0;
   user-select: none;
   cursor: default;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .scene-break-ornament {
@@ -496,6 +774,8 @@
   gap: 12px;
   margin: 3em 0;
   user-select: none;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .page-break-line {

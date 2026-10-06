@@ -7,6 +7,8 @@ import { SlashDropdown } from './SlashDropdown';
 import { FindReplaceBar } from './FindReplaceBar';
 import { DocumentOutline } from './DocumentOutline';
 import { LinkModal, ImageModal, TableModal } from './LinkImageModals';
+import { DocumentMetadataHeader } from './DocumentMetadataHeader';
+import { extractFrontmatter, combineFrontmatter } from '../core/frontmatter';
 import { SaveCoordinator } from '../sync/saveCoordinator';
 import { calculateEditorStats } from '../core/stats';
 import { FormattingCommands } from '../commands/formatting';
@@ -42,6 +44,14 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const [showFindReplace, setShowFindReplace] = useState<boolean>(false);
   const [showOutline, setShowOutline] = useState<boolean>(false);
 
+  // Frontmatter state
+  const initialParsed = extractFrontmatter(initialContent);
+  const [frontmatter, setFrontmatter] = useState<string | null>(initialParsed.frontmatter);
+  const [metadata, setMetadata] = useState<Record<string, string>>(initialParsed.metadata);
+  const frontmatterRef = useRef<string | null>(initialParsed.frontmatter);
+  const bodyMarkdownRef = useRef<string>(initialParsed.body);
+  const fullMarkdownRef = useRef<string>(initialContent);
+
   // Modals state
   const [linkModalOpen, setLinkModalOpen] = useState<boolean>(false);
   const [imageModalOpen, setImageModalOpen] = useState<boolean>(false);
@@ -56,7 +66,6 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const editorInstanceRef = useRef<SwriteEditorInstance | null>(null);
   const saveCoordinatorRef = useRef<SaveCoordinator | null>(null);
-  const currentContentRef = useRef<string>(initialContent);
 
   // Initialize Save Coordinator
   useEffect(() => {
@@ -87,7 +96,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     };
   }, [documentId, relativePath, initialContent]);
 
-  // Initialize Milkdown Rich Editor
+  // Initialize Milkdown Rich Editor with body markdown only
   useEffect(() => {
     if (mode !== 'rich' || readingMode || !editorContainerRef.current) return;
 
@@ -99,14 +108,16 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       try {
         const instance = await createSwriteEditor({
           root: editorContainerRef.current,
-          initialMarkdown: currentContentRef.current,
+          initialMarkdown: bodyMarkdownRef.current,
           editable: !readOnly,
           callbacks: {
-            onChange: (markdown, newStats) => {
-              currentContentRef.current = markdown;
+            onChange: (bodyMarkdown, newStats) => {
+              bodyMarkdownRef.current = bodyMarkdown;
+              const fullMarkdown = combineFrontmatter(frontmatterRef.current, bodyMarkdown);
+              fullMarkdownRef.current = fullMarkdown;
               setStats(newStats);
-              saveCoordinatorRef.current?.updateContent(markdown);
-              onContentChange?.(markdown);
+              saveCoordinatorRef.current?.updateContent(fullMarkdown);
+              onContentChange?.(fullMarkdown);
 
               // Check for slash command trigger
               checkForSlashCommand(instance);
@@ -153,7 +164,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
         editorInstanceRef.current = null;
       }
     };
-  }, [mode, readingMode, readOnly]);
+  }, [mode, readingMode, readOnly, documentId]);
 
   const checkForSlashCommand = (instance: SwriteEditorInstance) => {
     const view = instance.getView();
@@ -186,19 +197,30 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const handleToggleMode = () => {
     if (mode === 'rich') {
       if (editorInstanceRef.current) {
-        currentContentRef.current = editorInstanceRef.current.getMarkdown();
+        bodyMarkdownRef.current = editorInstanceRef.current.getMarkdown();
       }
+      fullMarkdownRef.current = combineFrontmatter(frontmatterRef.current, bodyMarkdownRef.current);
       setMode('source');
     } else {
+      const parsed = extractFrontmatter(fullMarkdownRef.current);
+      setFrontmatter(parsed.frontmatter);
+      setMetadata(parsed.metadata);
+      frontmatterRef.current = parsed.frontmatter;
+      bodyMarkdownRef.current = parsed.body;
       setMode('rich');
     }
   };
 
-  const handleSourceChange = (markdown: string, newStats: EditorStats) => {
-    currentContentRef.current = markdown;
+  const handleSourceChange = (newFullMarkdown: string, newStats: EditorStats) => {
+    fullMarkdownRef.current = newFullMarkdown;
+    const parsed = extractFrontmatter(newFullMarkdown);
+    setFrontmatter(parsed.frontmatter);
+    setMetadata(parsed.metadata);
+    frontmatterRef.current = parsed.frontmatter;
+    bodyMarkdownRef.current = parsed.body;
     setStats(newStats);
-    saveCoordinatorRef.current?.updateContent(markdown);
-    onContentChange?.(markdown);
+    saveCoordinatorRef.current?.updateContent(newFullMarkdown);
+    onContentChange?.(newFullMarkdown);
   };
 
   const handleSaveNow = async () => {
@@ -207,15 +229,20 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     }
   };
 
-  const handleReplaceContent = (newMarkdown: string) => {
-    currentContentRef.current = newMarkdown;
-    const newStats = calculateEditorStats(newMarkdown);
+  const handleReplaceContent = (newFullMarkdown: string) => {
+    fullMarkdownRef.current = newFullMarkdown;
+    const parsed = extractFrontmatter(newFullMarkdown);
+    setFrontmatter(parsed.frontmatter);
+    setMetadata(parsed.metadata);
+    frontmatterRef.current = parsed.frontmatter;
+    bodyMarkdownRef.current = parsed.body;
+    const newStats = calculateEditorStats(newFullMarkdown);
     setStats(newStats);
-    saveCoordinatorRef.current?.updateContent(newMarkdown);
-    onContentChange?.(newMarkdown);
+    saveCoordinatorRef.current?.updateContent(newFullMarkdown);
+    onContentChange?.(newFullMarkdown);
 
     if (mode === 'rich' && editorInstanceRef.current) {
-      editorInstanceRef.current.setMarkdown(newMarkdown);
+      editorInstanceRef.current.setMarkdown(parsed.body);
     }
   };
 
@@ -248,7 +275,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       {showFindReplace && (
         <FindReplaceBar
           getView={() => editorInstanceRef.current?.getView() || null}
-          getRawContent={() => currentContentRef.current}
+          getRawContent={() => fullMarkdownRef.current}
           onReplaceContent={handleReplaceContent}
           onClose={() => setShowFindReplace(false)}
         />
@@ -268,18 +295,19 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
               </button>
             </div>
             <div className="reading-prose-content">
-              {currentContentRef.current.split('\n\n').map((paragraph, i) => (
+              {bodyMarkdownRef.current.split('\n\n').map((paragraph, i) => (
                 <p key={i}>{paragraph}</p>
               ))}
             </div>
           </div>
         ) : mode === 'rich' ? (
           <div className="swrite-manuscript-page">
+            <DocumentMetadataHeader metadata={metadata} rawFrontmatter={frontmatter} />
             <div ref={editorContainerRef} className="milkdown-wrapper" />
           </div>
         ) : (
           <SourceEditor
-            initialValue={currentContentRef.current}
+            initialValue={fullMarkdownRef.current}
             onChange={handleSourceChange}
             onSave={handleSaveNow}
             onToggleMode={handleToggleMode}
@@ -291,7 +319,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       {/* Document Outline Drawer */}
       {showOutline && (
         <DocumentOutline
-          markdown={currentContentRef.current}
+          markdown={fullMarkdownRef.current}
           onSelectLine={(_line) => {
             setShowOutline(false);
           }}

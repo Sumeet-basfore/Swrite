@@ -27,6 +27,8 @@ pub struct DocumentMetadata {
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
     #[serde(default)]
+    pub raw_frontmatter: Option<String>,
+    #[serde(default)]
     pub custom: HashMap<String, String>,
 }
 

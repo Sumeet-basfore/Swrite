@@ -4,15 +4,91 @@ use crate::document::model::{
 use crate::error::Result;
 use pulldown_cmark::{Alignment, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 
+/// Extracts YAML/TOML frontmatter if present at the start of markdown source.
+pub fn extract_frontmatter(source: &str) -> (Option<String>, &str) {
+    let trimmed_start = source.trim_start_matches('\u{feff}');
+    let starts_with_dashes = trimmed_start.starts_with("---");
+    let starts_with_plus = trimmed_start.starts_with("+++");
+
+    if !starts_with_dashes && !starts_with_plus {
+        return (None, source);
+    }
+
+    let delimiter = if starts_with_dashes { "---" } else { "+++" };
+    let after_delim = &trimmed_start[3..];
+
+    if let Some(first_newline) = after_delim.find('\n') {
+        let first_line = &after_delim[..first_newline];
+        if first_line.trim().is_empty() {
+            let rest = &after_delim[first_newline + 1..];
+            let mut search_idx = 0;
+            while let Some(line_end) = rest[search_idx..].find('\n') {
+                let actual_end = search_idx + line_end;
+                let line = &rest[search_idx..actual_end];
+                let line_trimmed = line.trim();
+                if line_trimmed == delimiter || (delimiter == "---" && line_trimmed == "...") {
+                    let frontmatter_content = &rest[..search_idx];
+                    let body_start = actual_end + 1;
+                    let body = &rest[body_start..];
+                    return (Some(frontmatter_content.trim().to_string()), body);
+                }
+                search_idx = actual_end + 1;
+            }
+            let last_line = rest[search_idx..].trim();
+            if last_line == delimiter || (delimiter == "---" && last_line == "...") {
+                let frontmatter_content = &rest[..search_idx];
+                return (Some(frontmatter_content.trim().to_string()), "");
+            }
+        }
+    }
+
+    (None, source)
+}
+
+fn parse_metadata_from_frontmatter(raw_fm: &str) -> DocumentMetadata {
+    let mut meta = DocumentMetadata {
+        raw_frontmatter: Some(raw_fm.to_string()),
+        ..Default::default()
+    };
+
+    for line in raw_fm.lines() {
+        let line_trimmed = line.trim();
+        if line_trimmed.is_empty() || line_trimmed.starts_with('#') {
+            continue;
+        }
+        if let Some((key, val)) = line_trimmed.split_once(':') {
+            let k = key.trim().to_lowercase();
+            let v = val.trim().trim_matches('"').trim_matches('\'').to_string();
+            match k.as_str() {
+                "title" => meta.title = Some(v.clone()),
+                "author" => meta.author = Some(v.clone()),
+                "created_at" => meta.created_at = Some(v.clone()),
+                "updated_at" => meta.updated_at = Some(v.clone()),
+                _ => {}
+            }
+            meta.custom.insert(key.trim().to_string(), v);
+        }
+    }
+
+    meta
+}
+
 /// Parses Markdown text into a neutral `Document` AST.
 pub fn parse_markdown(source: &str, document_id: Option<String>) -> Result<Document> {
+    let (raw_fm, body_source) = extract_frontmatter(source);
+    let metadata = if let Some(ref fm) = raw_fm {
+        parse_metadata_from_frontmatter(fm)
+    } else {
+        DocumentMetadata::default()
+    };
+
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_STRIKETHROUGH);
     options.insert(Options::ENABLE_TASKLISTS);
     options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
 
-    let parser = Parser::new_ext(source, options);
+    let parser = Parser::new_ext(body_source, options);
 
     let mut blocks: Vec<BlockNode> = Vec::new();
     let mut block_stack: Vec<BlockContext> = Vec::new();
@@ -385,7 +461,7 @@ pub fn parse_markdown(source: &str, document_id: Option<String>) -> Result<Docum
     Ok(Document {
         id: document_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
         schema_version: 1,
-        metadata: DocumentMetadata::default(),
+        metadata,
         blocks,
     })
 }
@@ -393,6 +469,12 @@ pub fn parse_markdown(source: &str, document_id: Option<String>) -> Result<Docum
 /// Serializes a `Document` AST into clean, deterministic Markdown.
 pub fn serialize_markdown(doc: &Document) -> String {
     let mut out = String::new();
+
+    if let Some(ref fm) = doc.metadata.raw_frontmatter {
+        out.push_str("---\n");
+        out.push_str(fm.trim());
+        out.push_str("\n---\n\n");
+    }
 
     for (i, block) in doc.blocks.iter().enumerate() {
         if i > 0 {
@@ -775,5 +857,27 @@ mod tests {
         let serialized = serialize_markdown(&doc);
         assert!(serialized.contains("- [ ] Unfinished task"));
         assert!(serialized.contains("- [x] Completed task"));
+    }
+
+    #[test]
+    fn test_frontmatter_roundtrip() {
+        let md = "---\ntype: chapter_draft\nseries: Vaelrion\nact: 1\narc: 1\nchapter: 1\ntitle: The Sanctuary of Routine\nstatus: draft\npov: Lucan\nword_count: 1560\n---\n\n# The Sanctuary of Routine\n\nThe lantern flickered in the evening breeze.\n";
+        let doc = parse_markdown(md, None).unwrap();
+        assert_eq!(doc.metadata.title.as_deref(), Some("The Sanctuary of Routine"));
+        assert_eq!(doc.metadata.custom.get("pov").map(|s| s.as_str()), Some("Lucan"));
+        assert_eq!(doc.metadata.custom.get("series").map(|s| s.as_str()), Some("Vaelrion"));
+        assert_eq!(doc.blocks.len(), 2); // Heading and Paragraph
+        
+        // Ensure frontmatter is not parsed as blocks (like headings/paragraphs)
+        match &doc.blocks[0] {
+            BlockNode::Heading { level, .. } => assert_eq!(*level, 1),
+            other => panic!("Expected H1 heading, got {:?}", other),
+        }
+
+        let serialized = serialize_markdown(&doc);
+        assert!(serialized.starts_with("---\n"));
+        assert!(serialized.contains("title: The Sanctuary of Routine"));
+        assert!(serialized.contains("pov: Lucan"));
+        assert!(serialized.contains("# The Sanctuary of Routine"));
     }
 }
