@@ -6,7 +6,15 @@ export interface TreeNode {
   format: 'markdown' | 'txt' | 'docx' | 'binary';
   sizeBytes: number;
   children: TreeNode[];
-  section: 'Manuscript' | 'Planning' | 'Desk' | 'Assets' | 'Other';
+  section?: string;
+}
+
+export interface DocumentTab {
+  id: string; // DocumentId (or relativePath)
+  relativePath: string;
+  title: string;
+  format: 'markdown' | 'txt' | 'docx' | 'binary';
+  isDirty?: boolean;
 }
 
 export type SearchScope = 'All' | 'Manuscript' | 'Planning' | 'Desk' | 'Assets';

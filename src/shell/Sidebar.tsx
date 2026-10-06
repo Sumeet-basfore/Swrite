@@ -1,16 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ProjectFilesystemView, ProjectSummary } from '../types/ipc';
 import { FileTree } from './FileTree';
-import { buildSectionTree } from './treeUtils';
+import { buildProjectTree } from './treeUtils';
 import { TreeNode } from './types';
 import {
-  BookOpen,
-  Plus,
-  RefreshCw,
+  FolderPlus,
   FilePlus,
-  ChevronDown,
-  ChevronRight,
+  RefreshCw,
   UploadCloud,
+  FolderMinus,
+  FolderTree,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -21,14 +20,15 @@ export interface SidebarProps {
   collapsed: boolean;
   onOpenFile: (relativePath: string) => void;
   onToggleFolder: (folderPath: string) => void;
+  onCollapseAllFolders?: () => void;
   onRefreshFiles: () => void;
-  onNewChapter: () => void;
+  onNewChapter?: () => void;
   onNewDocument: (parentFolder: string) => void;
-  onNewFolder: (parentFolder: string, name: string) => void;
+  onNewFolder: (parentFolder: string, name?: string) => void;
   onContextMenu: (e: React.MouseEvent, node: TreeNode | null, section: string | null) => void;
   onRenameCommit: (oldRelative: string, newRelative: string) => Promise<void>;
   onMoveFile: (sourceRelative: string, targetRelative: string) => Promise<void>;
-  onOpenImport?: (section?: string) => void;
+  onOpenImport?: (sectionOrFolder?: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -39,9 +39,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   onOpenFile,
   onToggleFolder,
+  onCollapseAllFolders,
   onRefreshFiles,
-  onNewChapter,
   onNewDocument,
+  onNewFolder,
   onContextMenu,
   onRenameCommit,
   onMoveFile,
@@ -49,246 +50,139 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   if (collapsed) return null;
 
-  const manuscriptTree = filesView
-    ? buildSectionTree(filesView.manuscript_files, 'Manuscript')
-    : [];
-  const planningTree = filesView
-    ? buildSectionTree(filesView.planning_files, 'Planning')
-    : [];
-  const deskTree = filesView
-    ? buildSectionTree(filesView.desk_files, 'Desk')
-    : [];
-  const assetsTree = filesView
-    ? buildSectionTree(filesView.asset_files, 'Assets')
-    : [];
+  // Gather all project files from view into a single flat array
+  const allDiscoveredFiles = useMemo(() => {
+    if (!filesView) return [];
+    const combined = [
+      ...filesView.manuscript_files,
+      ...filesView.planning_files,
+      ...filesView.desk_files,
+      ...filesView.asset_files,
+      ...(filesView.other_visible_files || []),
+    ];
+    // Deduplicate by relative_path
+    const unique = new Map<string, typeof combined[0]>();
+    for (const file of combined) {
+      unique.set(file.relative_path, file);
+    }
+    return Array.from(unique.values());
+  }, [filesView]);
 
-  const renderSectionHeader = (
-    title: string,
-    sectionKey: 'Manuscript' | 'Planning' | 'Desk' | 'Assets',
-    count: number,
-    onPrimaryAdd: () => void
-  ) => {
-    const isExpanded = expandedFolders.has(sectionKey);
-    return (
-      <div
-        className="sidebar-section-header"
-        onContextMenu={(e) => onContextMenu(e, null, sectionKey)}
-      >
-        <div
-          className="section-title-wrap"
-          onClick={() => onToggleFolder(sectionKey)}
-        >
-          <span className="section-arrow">
-            {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+  // Construct canonical single unified filesystem tree
+  const projectTree = useMemo(() => {
+    return buildProjectTree(allDiscoveredFiles);
+  }, [allDiscoveredFiles]);
+
+  // Determine current parent folder if a node is selected
+  const activeParentFolder = useMemo(() => {
+    if (!selectedFile) return '';
+    const parts = selectedFile.split('/');
+    if (parts.length <= 1) return '';
+    return parts.slice(0, -1).join('/');
+  }, [selectedFile]);
+
+  return (
+    <aside className="swrite-shell-sidebar" aria-label="Project Explorer">
+      {/* Explorer Top Toolbar */}
+      <div className="sidebar-quick-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+          <FolderTree size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          <span
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              color: 'var(--text-secondary)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+            title={project?.name || 'Explorer'}
+          >
+            {project?.name || 'Explorer'}
           </span>
-          <span className="section-label">{title}</span>
-          <span className="section-count">{count}</span>
         </div>
 
-        <div className="section-actions">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <button
+            onClick={() => onNewDocument(activeParentFolder)}
+            className="section-action-btn"
+            title="New File in Current / Root Folder"
+            aria-label="New File"
+          >
+            <FilePlus size={14} />
+          </button>
+          <button
+            onClick={() => onNewFolder(activeParentFolder)}
+            className="section-action-btn"
+            title="New Folder in Current / Root Folder"
+            aria-label="New Folder"
+          >
+            <FolderPlus size={14} />
+          </button>
           {onOpenImport && (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenImport(sectionKey);
-              }}
+              onClick={() => onOpenImport(activeParentFolder || undefined)}
               className="section-action-btn"
-              title={`Import files or folders into ${title}`}
+              title="Import Files or Folder"
+              aria-label="Import"
             >
-              <UploadCloud size={12} />
+              <UploadCloud size={14} />
+            </button>
+          )}
+          {onCollapseAllFolders && (
+            <button
+              onClick={onCollapseAllFolders}
+              className="section-action-btn"
+              title="Collapse All Folders"
+              aria-label="Collapse All"
+            >
+              <FolderMinus size={14} />
             </button>
           )}
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onPrimaryAdd();
-            }}
+            onClick={onRefreshFiles}
             className="section-action-btn"
-            title={
-              sectionKey === 'Manuscript'
-                ? 'Create New Chapter'
-                : `Create New Document in ${title}`
-            }
+            title="Refresh Files"
+            aria-label="Refresh"
           >
-            <Plus size={13} />
+            <RefreshCw size={13} />
           </button>
         </div>
       </div>
-    );
-  };
 
-  return (
-    <aside className="swrite-shell-sidebar">
-      {/* Quick Global Action Header */}
-      <div className="sidebar-quick-bar">
-        <button
-          onClick={onNewChapter}
-          className="quick-action-btn primary"
-          title="Create New Chapter (Manuscript/Chapter XX.md)"
-        >
-          <FilePlus size={14} />
-          <span>New Chapter</span>
-        </button>
-        {onOpenImport && (
-          <button
-            onClick={() => onOpenImport('Manuscript')}
-            className="quick-action-btn icon-only"
-            title="Import Files or Folder"
-          >
-            <UploadCloud size={14} />
-          </button>
-        )}
-        <button
-          onClick={onRefreshFiles}
-          className="quick-action-btn icon-only"
-          title="Refresh Filesystem View"
-        >
-          <RefreshCw size={13} />
-        </button>
-      </div>
-
-      {/* File Tree Sections */}
+      {/* Pure Unified Filesystem Tree */}
       <div
         className="sidebar-scroll-tree"
-        onContextMenu={(e) => onContextMenu(e, null, 'Manuscript')}
+        onContextMenu={(e) => onContextMenu(e, null, null)}
+        style={{ flex: 1, overflowY: 'auto' }}
       >
-        {/* MANUSCRIPT SECTION */}
-        <div className="section-group">
-          {renderSectionHeader(
-            'MANUSCRIPT',
-            'Manuscript',
-            filesView?.manuscript_files.length || 0,
-            onNewChapter
-          )}
-          {expandedFolders.has('Manuscript') && (
-            <div className="section-content">
-              {manuscriptTree.length > 0 ? (
-                <FileTree
-                  nodes={manuscriptTree}
-                  selectedFile={selectedFile}
-                  expandedFolders={expandedFolders}
-                  onOpenFile={onOpenFile}
-                  onToggleFolder={onToggleFolder}
-                  onContextMenu={(e, node) => onContextMenu(e, node, 'Manuscript')}
-                  onRenameCommit={onRenameCommit}
-                  onMoveFile={onMoveFile}
-                />
-              ) : (
-                <div className="empty-section-hint">
-                  <span>No manuscript chapters.</span>
-                  <button onClick={onNewChapter} className="empty-action-link">
-                    + Add Chapter 1
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* PLANNING SECTION */}
-        <div className="section-group">
-          {renderSectionHeader(
-            'PLANNING',
-            'Planning',
-            filesView?.planning_files.length || 0,
-            () => onNewDocument('Planning')
-          )}
-          {expandedFolders.has('Planning') && (
-            <div className="section-content">
-              {planningTree.length > 0 ? (
-                <FileTree
-                  nodes={planningTree}
-                  selectedFile={selectedFile}
-                  expandedFolders={expandedFolders}
-                  onOpenFile={onOpenFile}
-                  onToggleFolder={onToggleFolder}
-                  onContextMenu={(e, node) => onContextMenu(e, node, 'Planning')}
-                  onRenameCommit={onRenameCommit}
-                  onMoveFile={onMoveFile}
-                />
-              ) : (
-                <div className="empty-section-hint">
-                  <span>No planning documents.</span>
-                  <button
-                    onClick={() => onNewDocument('Planning')}
-                    className="empty-action-link"
-                  >
-                    + Add Outline
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* DESK SECTION */}
-        <div className="section-group">
-          {renderSectionHeader(
-            'DESK',
-            'Desk',
-            filesView?.desk_files.length || 0,
-            () => onNewDocument('Desk')
-          )}
-          {expandedFolders.has('Desk') && (
-            <div className="section-content">
-              {deskTree.length > 0 ? (
-                <FileTree
-                  nodes={deskTree}
-                  selectedFile={selectedFile}
-                  expandedFolders={expandedFolders}
-                  onOpenFile={onOpenFile}
-                  onToggleFolder={onToggleFolder}
-                  onContextMenu={(e, node) => onContextMenu(e, node, 'Desk')}
-                  onRenameCommit={onRenameCommit}
-                  onMoveFile={onMoveFile}
-                />
-              ) : (
-                <div className="empty-section-hint">
-                  <span>No desk notes.</span>
-                  <button
-                    onClick={() => onNewDocument('Desk')}
-                    className="empty-action-link"
-                  >
-                    + Add Scratchpad
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* ASSETS SECTION */}
-        <div className="section-group">
-          {renderSectionHeader(
-            'ASSETS',
-            'Assets',
-            filesView?.asset_files.length || 0,
-            () => onNewDocument('Assets')
-          )}
-          {expandedFolders.has('Assets') && assetsTree.length > 0 && (
-            <div className="section-content">
-              <FileTree
-                nodes={assetsTree}
-                selectedFile={selectedFile}
-                expandedFolders={expandedFolders}
-                onOpenFile={onOpenFile}
-                onToggleFolder={onToggleFolder}
-                onContextMenu={(e, node) => onContextMenu(e, node, 'Assets')}
-                onRenameCommit={onRenameCommit}
-                onMoveFile={onMoveFile}
-              />
-            </div>
-          )}
-        </div>
+        {projectTree.length > 0 ? (
+          <FileTree
+            nodes={projectTree}
+            selectedFile={selectedFile}
+            expandedFolders={expandedFolders}
+            onOpenFile={onOpenFile}
+            onToggleFolder={onToggleFolder}
+            onContextMenu={(e, node) => onContextMenu(e, node, node.section || null)}
+            onRenameCommit={onRenameCommit}
+            onMoveFile={onMoveFile}
+            depth={0}
+          />
+        ) : (
+          <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            <p>No documents yet.</p>
+            <button
+              onClick={() => onNewDocument('')}
+              className="dialog-btn primary"
+              style={{ fontSize: '0.8rem', padding: '6px 12px', marginTop: 8 }}
+            >
+              + Create Document
+            </button>
+          </div>
+        )}
       </div>
-
-      {/* Sidebar Footer */}
-      <footer className="sidebar-bottom-bar">
-        <div className="project-root-indicator" title={project?.root_path}>
-          <BookOpen size={13} className="text-muted" />
-          <span className="root-name">{project?.name || 'Project'}</span>
-        </div>
-      </footer>
     </aside>
   );
 };

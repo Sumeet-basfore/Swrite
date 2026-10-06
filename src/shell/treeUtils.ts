@@ -9,30 +9,47 @@ export function naturalCompare(a: string, b: string): number {
 }
 
 /**
- * Builds a hierarchical tree node structure from flat discovered files for a section
+ * Builds a single canonical project filesystem tree supporting arbitrary nesting.
+ * Automatically provisions synthetic parent directory nodes if missing from raw scan.
  */
-export function buildSectionTree(
-  files: DiscoveredFile[],
-  sectionName: 'Manuscript' | 'Planning' | 'Desk' | 'Assets' | 'Other'
-): TreeNode[] {
+export function buildProjectTree(files: DiscoveredFile[]): TreeNode[] {
   const rootNodes: TreeNode[] = [];
   const nodeMap = new Map<string, TreeNode>();
 
-  // Filter files that belong to this section
-  const sectionFiles = files.filter((f) => {
-    if (sectionName === 'Other') {
-      return (
-        !f.relative_path.startsWith('Manuscript') &&
-        !f.relative_path.startsWith('Planning') &&
-        !f.relative_path.startsWith('Desk') &&
-        !f.relative_path.startsWith('Assets')
-      );
-    }
-    return f.relative_path.startsWith(sectionName);
-  });
+  // Helper to ensure all intermediate directory nodes exist
+  const ensureDirectoryNode = (dirPath: string): TreeNode => {
+    let existing = nodeMap.get(dirPath);
+    if (existing) return existing;
 
-  // First pass: create TreeNode for each item
-  for (const file of sectionFiles) {
+    const parts = dirPath.split('/');
+    const dirName = parts[parts.length - 1];
+    const newNode: TreeNode = {
+      id: dirPath,
+      name: dirName,
+      relativePath: dirPath,
+      isDirectory: true,
+      format: 'txt',
+      sizeBytes: 0,
+      children: [],
+      section: parts[0],
+    };
+    nodeMap.set(dirPath, newNode);
+
+    if (parts.length === 1) {
+      rootNodes.push(newNode);
+    } else {
+      const parentPath = parts.slice(0, -1).join('/');
+      const parent = ensureDirectoryNode(parentPath);
+      if (!parent.children.some((c) => c.relativePath === dirPath)) {
+        parent.children.push(newNode);
+      }
+    }
+    return newNode;
+  };
+
+  // 1. Create TreeNodes for all discovered files
+  for (const file of files) {
+    const parts = file.relative_path.split('/');
     const node: TreeNode = {
       id: file.relative_path,
       name: file.name,
@@ -41,32 +58,30 @@ export function buildSectionTree(
       format: file.format,
       sizeBytes: file.size_bytes,
       children: [],
-      section: sectionName,
+      section: parts[0],
     };
     nodeMap.set(file.relative_path, node);
   }
 
-  // Second pass: link children to parent directories
-  for (const file of sectionFiles) {
+  // 2. Link all nodes into the hierarchy
+  for (const file of files) {
     const node = nodeMap.get(file.relative_path)!;
-    const pathParts = file.relative_path.split('/');
+    const parts = file.relative_path.split('/');
 
-    if (pathParts.length <= 2) {
-      // Direct child of Section root (e.g. "Manuscript/Chapter 01.md")
-      rootNodes.push(node);
-    } else {
-      // Nested child (e.g. "Manuscript/Act 1/Chapter 01.md")
-      const parentPath = pathParts.slice(0, -1).join('/');
-      const parentNode = nodeMap.get(parentPath);
-      if (parentNode) {
-        parentNode.children.push(node);
-      } else {
+    if (parts.length === 1) {
+      if (!rootNodes.some((r) => r.relativePath === node.relativePath)) {
         rootNodes.push(node);
+      }
+    } else {
+      const parentPath = parts.slice(0, -1).join('/');
+      const parentNode = ensureDirectoryNode(parentPath);
+      if (!parentNode.children.some((c) => c.relativePath === node.relativePath)) {
+        parentNode.children.push(node);
       }
     }
   }
 
-  // Sort: Folders first, then natural alphanumeric filename order
+  // 3. Sort: Folders first, then natural alphanumeric filename order
   const sortNodes = (nodes: TreeNode[]) => {
     nodes.sort((a, b) => {
       if (a.isDirectory && !b.isDirectory) return -1;
@@ -82,6 +97,23 @@ export function buildSectionTree(
 
   sortNodes(rootNodes);
   return rootNodes;
+}
+
+/**
+ * Backwards-compatible helper for section-specific trees
+ */
+export function buildSectionTree(
+  files: DiscoveredFile[],
+  sectionName: string
+): TreeNode[] {
+  const allProjectNodes = buildProjectTree(files);
+  const sectionNode = allProjectNodes.find(
+    (n) => n.name === sectionName || n.relativePath === sectionName
+  );
+  if (sectionNode && sectionNode.isDirectory) {
+    return sectionNode.children;
+  }
+  return allProjectNodes.filter((n) => n.relativePath.startsWith(sectionName));
 }
 
 /**

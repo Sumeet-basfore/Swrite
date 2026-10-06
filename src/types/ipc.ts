@@ -54,6 +54,9 @@ export interface ProjectUiState {
   expanded_folders: string[];
   sidebar_collapsed: boolean;
   last_search_scope?: string;
+  open_tabs?: string[];
+  active_tab_id?: string;
+  active_studio?: string;
 }
 
 export interface RecentDocumentEntry {

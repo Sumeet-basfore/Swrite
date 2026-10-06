@@ -8,6 +8,7 @@ import {
   SearchResult,
   ImportSummary,
 } from '../types/ipc';
+import { DocumentTab } from './types';
 
 export interface UseProjectStateReturn {
   activeProject: ProjectSummary | null;
@@ -23,6 +24,15 @@ export interface UseProjectStateReturn {
   highlightQuery: string | null;
   logs: string[];
 
+  // Document Tabs
+  openTabs: DocumentTab[];
+  activeTabId: string | null;
+  closeTab: (tabId: string) => Promise<void>;
+  closeOtherTabs: (tabId: string) => Promise<void>;
+  closeAllTabs: () => Promise<void>;
+  reorderTabs: (sourceIndex: number, targetIndex: number) => void;
+  markTabDirty: (relativePath: string, isDirty: boolean) => void;
+
   // Actions
   createProject: (path: string, name: string) => Promise<void>;
   openProject: (path: string) => Promise<void>;
@@ -30,11 +40,12 @@ export interface UseProjectStateReturn {
   refreshFiles: () => Promise<void>;
   openDocument: (relativePath: string) => Promise<void>;
   toggleFolder: (folderPath: string) => void;
+  collapseAllFolders: () => void;
   toggleSidebar: () => void;
   createNewDocument: (parentFolder: string, name?: string) => Promise<string>;
   createNewChapter: () => Promise<string>;
   createNewScene: (parentChapterFolder: string) => Promise<string>;
-  createNewFolder: (parentFolder: string, name: string) => Promise<void>;
+  createNewFolder: (parentFolder: string, name?: string) => Promise<void>;
   renameFile: (oldRelative: string, newRelative: string) => Promise<void>;
   moveFile: (sourceRelative: string, targetRelative: string) => Promise<void>;
   duplicateFile: (relative: string) => Promise<string>;
@@ -55,7 +66,23 @@ export interface UseProjectStateReturn {
   openSearchResult: (relativePath: string, query: string) => Promise<void>;
 }
 
-export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initialName = 'The Cartographer of Shadows'): UseProjectStateReturn {
+function detectFileFormat(path: string): 'markdown' | 'txt' | 'docx' | 'binary' {
+  const ext = path.split('.').pop()?.toLowerCase();
+  if (ext === 'md' || ext === 'markdown') return 'markdown';
+  if (ext === 'docx') return 'docx';
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '')) return 'binary';
+  return 'txt';
+}
+
+function getFileName(path: string): string {
+  const parts = path.split('/');
+  return parts[parts.length - 1] || path;
+}
+
+export function useProjectState(
+  initialPath = '/tmp/swrite-sample-novel',
+  initialName = 'The Cartographer of Shadows'
+): UseProjectStateReturn {
   const [activeProject, setActiveProject] = useState<ProjectSummary | null>(null);
   const [filesView, setFilesView] = useState<ProjectFilesystemView | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -69,11 +96,21 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
   const [highlightQuery, setHighlightQuery] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
 
+  // Document Tabs State
+  const [openTabs, setOpenTabs] = useState<DocumentTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+
   const activeProjectRef = useRef<ProjectSummary | null>(null);
   activeProjectRef.current = activeProject;
 
   const selectedFileRef = useRef<string | null>(null);
   selectedFileRef.current = selectedFile;
+
+  const openTabsRef = useRef<DocumentTab[]>(openTabs);
+  openTabsRef.current = openTabs;
+
+  const activeTabIdRef = useRef<string | null>(activeTabId);
+  activeTabIdRef.current = activeTabId;
 
   const expandedFoldersRef = useRef<Set<string>>(expandedFolders);
   expandedFoldersRef.current = expandedFolders;
@@ -88,7 +125,9 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
   const persistUiState = useCallback(async (
     lastDoc?: string | null,
     folders?: Set<string>,
-    collapsed?: boolean
+    collapsed?: boolean,
+    tabs?: DocumentTab[],
+    currentTabId?: string | null
   ) => {
     if (!activeProjectRef.current) return;
     try {
@@ -96,6 +135,8 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
         last_opened_document: lastDoc !== undefined ? (lastDoc || undefined) : selectedFileRef.current || undefined,
         expanded_folders: Array.from(folders || expandedFoldersRef.current),
         sidebar_collapsed: collapsed !== undefined ? collapsed : sidebarCollapsedRef.current,
+        open_tabs: (tabs || openTabsRef.current).map((t) => t.relativePath),
+        active_tab_id: currentTabId !== undefined ? (currentTabId || undefined) : (activeTabIdRef.current || undefined),
       };
       await SwriteIpc.projectSetUiState(state);
     } catch {
@@ -115,6 +156,16 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
     }
   }, []);
 
+  const markTabDirty = useCallback((relativePath: string, isDirty: boolean) => {
+    setOpenTabs((prev) =>
+      prev.map((tab) =>
+        tab.relativePath === relativePath || tab.id === relativePath
+          ? { ...tab, isDirty }
+          : tab
+      )
+    );
+  }, []);
+
   const openDocument = useCallback(async (relativePath: string) => {
     if (!relativePath) return;
     try {
@@ -129,13 +180,98 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
       const recents = await SwriteIpc.projectGetRecents().catch(() => []);
       setRecentDocuments(recents);
 
-      persistUiState(relativePath);
+      // Manage Document Tabs
+      setOpenTabs((prev) => {
+        const existingIndex = prev.findIndex(
+          (t) => t.relativePath === relativePath || t.id === relativePath
+        );
+        let updated: DocumentTab[];
+        if (existingIndex >= 0) {
+          // Already in tabs
+          updated = prev;
+        } else {
+          // Add new tab
+          const newTab: DocumentTab = {
+            id: relativePath,
+            relativePath,
+            title: getFileName(relativePath),
+            format: detectFileFormat(relativePath),
+            isDirty: false,
+          };
+          updated = [...prev, newTab];
+        }
+        setActiveTabId(relativePath);
+        persistUiState(relativePath, undefined, undefined, updated, relativePath);
+        return updated;
+      });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       log(`Failed to open document ${relativePath}: ${msg}`);
     } finally {
       setIsLoading(false);
     }
+  }, [persistUiState]);
+
+  const closeTab = useCallback(async (tabId: string) => {
+    setOpenTabs((prev) => {
+      const tabIndex = prev.findIndex((t) => t.id === tabId || t.relativePath === tabId);
+      if (tabIndex < 0) return prev;
+
+      const updated = prev.filter((_, idx) => idx !== tabIndex);
+      const isActive = activeTabIdRef.current === tabId || selectedFileRef.current === tabId;
+
+      if (isActive) {
+        if (updated.length > 0) {
+          // Activate adjacent tab (previous or current index)
+          const nextIndex = Math.min(tabIndex, updated.length - 1);
+          const nextTab = updated[nextIndex];
+          setActiveTabId(nextTab.id);
+          // Asynchronously load next tab content
+          openDocument(nextTab.relativePath);
+        } else {
+          setActiveTabId(null);
+          setSelectedFile(null);
+          setFileContent('');
+          persistUiState(null, undefined, undefined, [], null);
+        }
+      } else {
+        persistUiState(undefined, undefined, undefined, updated, undefined);
+      }
+      return updated;
+    });
+  }, [openDocument, persistUiState]);
+
+  const closeOtherTabs = useCallback(async (tabId: string) => {
+    setOpenTabs((prev) => {
+      const kept = prev.filter((t) => t.id === tabId || t.relativePath === tabId);
+      if (kept.length > 0) {
+        setActiveTabId(kept[0].id);
+        openDocument(kept[0].relativePath);
+      }
+      persistUiState(undefined, undefined, undefined, kept, kept[0]?.id || null);
+      return kept;
+    });
+  }, [openDocument, persistUiState]);
+
+  const closeAllTabs = useCallback(async () => {
+    setOpenTabs([]);
+    setActiveTabId(null);
+    setSelectedFile(null);
+    setFileContent('');
+    persistUiState(null, undefined, undefined, [], null);
+  }, [persistUiState]);
+
+  const reorderTabs = useCallback((sourceIndex: number, targetIndex: number) => {
+    setOpenTabs((prev) => {
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex >= prev.length || targetIndex >= prev.length) {
+        return prev;
+      }
+      const updated = [...prev];
+      const [moved] = updated.splice(sourceIndex, 1);
+      updated.splice(targetIndex, 0, moved);
+      persistUiState(undefined, undefined, undefined, updated, undefined);
+      return updated;
+    });
   }, [persistUiState]);
 
   useEffect(() => {
@@ -179,8 +315,20 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
           setSidebarCollapsed(uiState.sidebar_collapsed);
         }
 
-        // Auto-create sample Chapter 01 if empty
-        if (view.manuscript_files.length === 0) {
+        // Restore Open Tabs if present
+        if (uiState.open_tabs && uiState.open_tabs.length > 0) {
+          const restoredTabs: DocumentTab[] = uiState.open_tabs.map((path) => ({
+            id: path,
+            relativePath: path,
+            title: getFileName(path),
+            format: detectFileFormat(path),
+            isDirty: false,
+          }));
+          setOpenTabs(restoredTabs);
+          const target = uiState.active_tab_id || uiState.last_opened_document || uiState.open_tabs[0];
+          await openDocument(target);
+        } else if (view.manuscript_files.length === 0) {
+          // Auto-create sample Chapter 01 if completely empty
           const sampleText = `# Chapter 1: The Cartographer's Journal\n\nThe lantern flickered in the drafty archives of Oakhaven.\n`;
           await SwriteIpc.fileCreate('Manuscript/Chapter 01.md', sampleText);
           const updatedView = await SwriteIpc.projectDiscover();
@@ -244,10 +392,13 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
       setFilesView(null);
       setSelectedFile(null);
       setFileContent('');
+      setOpenTabs([]);
+      setActiveTabId(null);
       log('Closed project');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       log(`Close project error: ${msg}`);
+      throw e;
     }
   };
 
@@ -259,79 +410,106 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
       } else {
         next.add(folderPath);
       }
-      persistUiState(selectedFileRef.current, next, sidebarCollapsedRef.current);
+      persistUiState(undefined, next);
       return next;
     });
+  };
+
+  const collapseAllFolders = () => {
+    setExpandedFolders(new Set());
+    persistUiState(undefined, new Set());
   };
 
   const toggleSidebar = () => {
     setSidebarCollapsed((prev) => {
       const next = !prev;
-      persistUiState(selectedFileRef.current, expandedFoldersRef.current, next);
+      persistUiState(undefined, undefined, next);
       return next;
     });
   };
 
   const createNewDocument = async (parentFolder: string, name?: string): Promise<string> => {
-    const docName = name ? (name.endsWith('.md') ? name : `${name}.md`) : 'Untitled.md';
-    let targetPath = `${parentFolder}/${docName}`;
+    const docName = name || `Document ${new Date().toLocaleTimeString().replace(/:/g, '-')}.md`;
+    const cleanDocName = docName.endsWith('.md') || docName.endsWith('.txt') || docName.endsWith('.docx')
+      ? docName
+      : `${docName}.md`;
+    const targetRelative = parentFolder ? `${parentFolder}/${cleanDocName}` : cleanDocName;
 
-    let counter = 1;
-    while (await SwriteIpc.fileExists(targetPath)) {
-      counter++;
-      targetPath = `${parentFolder}/Untitled ${counter}.md`;
-    }
-
-    await SwriteIpc.fileCreate(targetPath, '# \n\n');
+    const newPath = await SwriteIpc.fileCreate(targetRelative, `# ${cleanDocName.replace(/\.[^/.]+$/, '')}\n\n`);
     await refreshFiles();
-    await openDocument(targetPath);
-    log(`Created document: ${targetPath}`);
-    return targetPath;
+    if (parentFolder) {
+      setExpandedFolders((prev) => new Set([...prev, parentFolder]));
+    }
+    await openDocument(newPath);
+    log(`Created document: ${newPath}`);
+    return newPath;
   };
 
   const createNewChapter = async (): Promise<string> => {
-    const num = (filesView?.manuscript_files.length || 0) + 1;
-    const padNum = num < 10 ? `0${num}` : `${num}`;
-    const targetPath = `Manuscript/Chapter ${padNum}.md`;
-    const initialText = `# Chapter ${num}\n\n`;
+    const count = filesView?.manuscript_files.filter((f) => !f.is_directory).length || 0;
+    const pad = String(count + 1).padStart(2, '0');
+    const relative = `Manuscript/Chapter ${pad}.md`;
+    const initialMarkdown = `# Chapter ${count + 1}\n\nBegin writing here...\n`;
 
-    await SwriteIpc.fileCreate(targetPath, initialText);
+    const newPath = await SwriteIpc.fileCreate(relative, initialMarkdown);
     await refreshFiles();
-    await openDocument(targetPath);
-    log(`Created chapter: ${targetPath}`);
-    return targetPath;
+    setExpandedFolders((prev) => new Set([...prev, 'Manuscript']));
+    await openDocument(newPath);
+    log(`Created chapter: ${newPath}`);
+    return newPath;
   };
 
   const createNewScene = async (parentChapterFolder: string): Promise<string> => {
-    const targetPath = `${parentChapterFolder}/Scene 01.md`;
-    let counter = 1;
-    let finalPath = targetPath;
-    while (await SwriteIpc.fileExists(finalPath)) {
-      counter++;
-      const padNum = counter < 10 ? `0${counter}` : `${counter}`;
-      finalPath = `${parentChapterFolder}/Scene ${padNum}.md`;
-    }
-
-    await SwriteIpc.fileCreate(finalPath, `### Scene ${counter}\n\n`);
+    const relative = `${parentChapterFolder}/Scene ${Date.now().toString().slice(-4)}.md`;
+    const newPath = await SwriteIpc.fileCreate(relative, `### New Scene\n\n`);
     await refreshFiles();
-    await openDocument(finalPath);
-    log(`Created scene: ${finalPath}`);
-    return finalPath;
+    setExpandedFolders((prev) => new Set([...prev, parentChapterFolder]));
+    await openDocument(newPath);
+    log(`Created scene: ${newPath}`);
+    return newPath;
   };
 
-  const createNewFolder = async (parentFolder: string, name: string) => {
-    const targetPath = `${parentFolder}/${name}`;
-    await SwriteIpc.fileMkdir(targetPath);
+  const createNewFolder = async (parentFolder: string, name?: string) => {
+    const folderName = name || `Folder ${new Date().toLocaleTimeString().replace(/:/g, '-')}`;
+    const targetRelative = parentFolder ? `${parentFolder}/${folderName}` : folderName;
+    const createFolderFunc = SwriteIpc.folderCreate || SwriteIpc.fileMkdir;
+    await createFolderFunc(targetRelative);
     await refreshFiles();
-    setExpandedFolders((prev) => new Set([...prev, parentFolder, targetPath]));
-    log(`Created directory: ${targetPath}`);
+    setExpandedFolders((prev) => new Set([...prev, parentFolder ? parentFolder : targetRelative, targetRelative]));
+    log(`Created folder: ${targetRelative}`);
   };
 
   const renameFile = async (oldRelative: string, newRelative: string) => {
     await SwriteIpc.fileRename(oldRelative, newRelative);
+
+    // Update matching tabs
+    setOpenTabs((prev) =>
+      prev.map((t) => {
+        if (t.relativePath === oldRelative || t.id === oldRelative) {
+          return {
+            ...t,
+            id: newRelative,
+            relativePath: newRelative,
+            title: getFileName(newRelative),
+            format: detectFileFormat(newRelative),
+          };
+        }
+        if (t.relativePath.startsWith(oldRelative + '/')) {
+          const updatedSub = t.relativePath.replace(oldRelative, newRelative);
+          return {
+            ...t,
+            id: updatedSub,
+            relativePath: updatedSub,
+            title: getFileName(updatedSub),
+          };
+        }
+        return t;
+      })
+    );
+
     if (selectedFileRef.current === oldRelative) {
       setSelectedFile(newRelative);
-      persistUiState(newRelative);
+      setActiveTabId(newRelative);
     }
     await refreshFiles();
     log(`Renamed: ${oldRelative} -> ${newRelative}`);
@@ -339,9 +517,26 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
 
   const moveFile = async (sourceRelative: string, targetRelative: string) => {
     await SwriteIpc.fileRename(sourceRelative, targetRelative);
+
+    // Update matching tabs
+    setOpenTabs((prev) =>
+      prev.map((t) => {
+        if (t.relativePath === sourceRelative || t.id === sourceRelative) {
+          return {
+            ...t,
+            id: targetRelative,
+            relativePath: targetRelative,
+            title: getFileName(targetRelative),
+            format: detectFileFormat(targetRelative),
+          };
+        }
+        return t;
+      })
+    );
+
     if (selectedFileRef.current === sourceRelative) {
       setSelectedFile(targetRelative);
-      persistUiState(targetRelative);
+      setActiveTabId(targetRelative);
     }
     await refreshFiles();
     log(`Moved: ${sourceRelative} -> ${targetRelative}`);
@@ -357,10 +552,26 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
 
   const deleteFileSafe = async (relative: string) => {
     await SwriteIpc.fileDeleteSafe(relative);
-    if (selectedFileRef.current === relative) {
-      setSelectedFile(null);
-      setFileContent('');
-    }
+
+    // Close any tabs belonging to deleted file or directory
+    setOpenTabs((prev) => {
+      const updated = prev.filter(
+        (t) => t.relativePath !== relative && !t.relativePath.startsWith(relative + '/')
+      );
+      if (selectedFileRef.current === relative || selectedFileRef.current?.startsWith(relative + '/')) {
+        if (updated.length > 0) {
+          const next = updated[0];
+          setActiveTabId(next.id);
+          openDocument(next.relativePath);
+        } else {
+          setSelectedFile(null);
+          setActiveTabId(null);
+          setFileContent('');
+        }
+      }
+      return updated;
+    });
+
     await refreshFiles();
     log(`Moved to trash: ${relative}`);
   };
@@ -436,12 +647,21 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
     highlightQuery,
     logs,
 
+    openTabs,
+    activeTabId,
+    closeTab,
+    closeOtherTabs,
+    closeAllTabs,
+    reorderTabs,
+    markTabDirty,
+
     createProject,
     openProject,
     closeProject,
     refreshFiles,
     openDocument,
     toggleFolder,
+    collapseAllFolders,
     toggleSidebar,
     createNewDocument,
     createNewChapter,

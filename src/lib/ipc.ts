@@ -73,8 +73,14 @@ export const SwriteIpc = {
   fileMkdir: (relativePath: string) =>
     invoke<void>('file_mkdir', { relativePath }),
 
+  folderCreate: (relativePath: string) =>
+    invoke<void>('file_mkdir', { relativePath }),
+
   fileRename: (oldRelative: string, newRelative: string) =>
     invoke<void>('file_rename', { oldRelative, newRelative }),
+
+  fileMove: (sourceRelative: string, targetRelative: string) =>
+    invoke<void>('file_rename', { oldRelative: sourceRelative, newRelative: targetRelative }),
 
   fileCopy: (sourceRelative: string, targetRelative: string) =>
     invoke<void>('file_copy', { sourceRelative, targetRelative }),

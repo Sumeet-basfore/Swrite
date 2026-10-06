@@ -21,6 +21,7 @@ export interface EditorCanvasProps {
   initialContent: string;
   onContentChange?: (markdown: string) => void;
   onSave?: (markdown: string) => Promise<void>;
+  onSaveStatusChange?: (status: SaveStatus) => void;
   readOnly?: boolean;
 }
 
@@ -29,6 +30,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   relativePath,
   initialContent,
   onContentChange,
+  onSaveStatusChange,
   readOnly = false,
 }) => {
   const [mode, setMode] = useState<EditorMode>('rich');
@@ -63,7 +65,12 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       relativePath,
       debounceMs: 1500,
       recoveryIntervalMs: 3000,
-      onStatusChange: (status) => setSaveStatus(status),
+      onStatusChange: (status) => {
+        setSaveStatus(status);
+        if (onSaveStatusChange) {
+          onSaveStatusChange(status);
+        }
+      },
       onExternalChangeDetected: (conflict) => {
         if (conflict) {
           console.warn('External modification detected with dirty buffer on:', relativePath);

@@ -20,12 +20,12 @@ export interface FileContextMenuProps {
   onOpen: (path: string) => void;
   onNewDocument: (parentFolder: string) => void;
   onNewFolder: (parentFolder: string) => void;
-  onNewChapter: () => void;
-  onNewScene: (parentFolder: string) => void;
+  onNewChapter?: () => void;
+  onNewScene?: (parentFolder: string) => void;
   onRename: (node: TreeNode) => void;
   onDuplicate: (path: string) => void;
   onDeleteSafe: (path: string) => void;
-  onImport?: (sectionOrFolder: string) => void;
+  onImport?: (sectionOrFolder?: string) => void;
 }
 
 export const FileContextMenu: React.FC<FileContextMenuProps> = ({
@@ -70,7 +70,7 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = ({
   };
 
   // Adjust menu bounds to stay inside viewport
-  const adjustedX = Math.min(x, window.innerWidth - 210);
+  const adjustedX = Math.min(x, window.innerWidth - 220);
   const adjustedY = Math.min(y, window.innerHeight - 260);
 
   return (
@@ -145,9 +145,9 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = ({
             }}
           >
             <FilePlus size={14} />
-            <span>New Document</span>
+            <span>New File in Folder</span>
           </button>
-          {node.section === 'Manuscript' && (
+          {node.section === 'Manuscript' && onNewScene && (
             <button
               className="menu-item"
               onClick={() => {
@@ -178,7 +178,7 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = ({
               }}
             >
               <UploadCloud size={14} />
-              <span>Import into Folder...</span>
+              <span>Import Here...</span>
             </button>
           )}
           <div className="menu-divider" />
@@ -213,10 +213,10 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = ({
         </>
       )}
 
-      {/* Section Root options */}
-      {!node && section && (
+      {/* Root / Empty Area options */}
+      {!node && (
         <>
-          {section === 'Manuscript' && (
+          {section === 'Manuscript' && onNewChapter && (
             <button
               className="menu-item"
               onClick={() => {
@@ -231,22 +231,22 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = ({
           <button
             className="menu-item"
             onClick={() => {
-              onNewDocument(section);
+              onNewDocument(section || '');
               onClose();
             }}
           >
             <FilePlus size={14} />
-            <span>New Document in {section}</span>
+            <span>New File</span>
           </button>
           <button
             className="menu-item"
             onClick={() => {
-              onNewFolder(section);
+              onNewFolder(section || '');
               onClose();
             }}
           >
             <FolderPlus size={14} />
-            <span>New Folder in {section}</span>
+            <span>New Folder</span>
           </button>
           {onImport && (
             <>
@@ -254,12 +254,12 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = ({
               <button
                 className="menu-item"
                 onClick={() => {
-                  onImport(section);
+                  onImport(section || undefined);
                   onClose();
                 }}
               >
                 <UploadCloud size={14} />
-                <span>Import into {section}...</span>
+                <span>Import Files or Folder...</span>
               </button>
             </>
           )}

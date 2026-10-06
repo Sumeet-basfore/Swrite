@@ -10,6 +10,12 @@ pub struct ProjectUiState {
     pub expanded_folders: Vec<String>,
     pub sidebar_collapsed: bool,
     pub last_search_scope: Option<String>,
+    #[serde(default)]
+    pub open_tabs: Vec<String>,
+    #[serde(default)]
+    pub active_tab_id: Option<String>,
+    #[serde(default)]
+    pub active_studio: Option<String>,
 }
 
 impl ProjectUiState {
@@ -53,6 +59,9 @@ mod tests {
             expanded_folders: vec!["Manuscript".to_string(), "Manuscript/Act 1".to_string()],
             sidebar_collapsed: false,
             last_search_scope: Some("Manuscript".to_string()),
+            open_tabs: vec!["Manuscript/Chapter 01.md".to_string(), "Planning/Outline.md".to_string()],
+            active_tab_id: Some("Manuscript/Chapter 01.md".to_string()),
+            active_studio: Some("write".to_string()),
         };
 
         state.save(root).unwrap();

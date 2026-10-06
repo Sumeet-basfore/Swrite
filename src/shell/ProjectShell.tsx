@@ -8,6 +8,7 @@ import { RecentFilesMenu } from './RecentFilesMenu';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { NewDocumentDialog } from './NewDocumentDialog';
 import { ImportModal } from './ImportModal';
+import { DocumentTabBar } from './DocumentTabBar';
 import { ThemePickerModal } from '../theme';
 import { EditorCanvas } from '../editor';
 import { PlanningStudio } from '../planning';
@@ -32,9 +33,16 @@ export const ProjectShell: React.FC = () => {
     searchResult,
     isSearching,
     logs,
+    openTabs,
+    activeTabId,
+    closeTab,
+    closeOtherTabs,
+    closeAllTabs,
+    markTabDirty,
     refreshFiles,
     openDocument,
     toggleFolder,
+    collapseAllFolders,
     toggleSidebar,
     createNewDocument,
     createNewChapter,
@@ -223,7 +231,7 @@ export const ProjectShell: React.FC = () => {
       />
 
       <div className="swrite-shell-body">
-        {/* Navigation Sidebar */}
+        {/* Pure Filesystem Explorer Sidebar */}
         {!focusMode && (
           <Sidebar
             project={activeProject}
@@ -232,10 +240,10 @@ export const ProjectShell: React.FC = () => {
             expandedFolders={expandedFolders}
             collapsed={sidebarCollapsed}
             onOpenFile={(path) => {
-              setStudioMode('write');
               openDocument(path);
             }}
             onToggleFolder={toggleFolder}
+            onCollapseAllFolders={collapseAllFolders}
             onRefreshFiles={refreshFiles}
             onNewChapter={createNewChapter}
             onNewDocument={(parent) =>
@@ -247,24 +255,39 @@ export const ProjectShell: React.FC = () => {
             onContextMenu={handleContextMenu}
             onRenameCommit={renameFile}
             onMoveFile={moveFile}
-            onOpenImport={(section) =>
-              setImportModalState({ open: true, section: section || 'Manuscript' })
+            onOpenImport={(sectionOrFolder) =>
+              setImportModalState({ open: true, section: sectionOrFolder || 'Manuscript' })
             }
           />
         )}
 
-        {/* Main Document Workspace / Planning Studio / Creative Desk */}
-        <main className="swrite-shell-canvas-area">
-          {studioMode === 'plan' ? (
-            <PlanningStudio
-              manuscriptFiles={filesView?.manuscript_files || []}
-              planningFiles={filesView?.planning_files || []}
-              onOpenFile={(path) => {
-                setStudioMode('write');
-                openDocument(path);
-              }}
-              onRefreshFiles={refreshFiles}
+        <div className="swrite-main-workspace" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+          {/* Unified Document Tabs */}
+          {!focusMode && (
+            <DocumentTabBar
+              tabs={openTabs}
+              activeTabId={activeTabId}
+              onSelectTab={(tabId) => openDocument(tabId)}
+              onCloseTab={closeTab}
+              onCloseOtherTabs={closeOtherTabs}
+              onCloseAllTabs={closeAllTabs}
+              onNewDocument={() =>
+                setNewDialogState({ open: true, type: 'document', parentFolder: '' })
+              }
             />
+          )}
+
+          {/* Main Document Workspace / Planning Studio / Creative Desk */}
+          <main className="swrite-shell-canvas-area" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            {studioMode === 'plan' ? (
+              <PlanningStudio
+                manuscriptFiles={filesView?.manuscript_files || []}
+                planningFiles={filesView?.planning_files || []}
+                onOpenFile={(path) => {
+                  openDocument(path);
+                }}
+                onRefreshFiles={refreshFiles}
+              />
           ) : studioMode === 'desk' ? (
             <DeskStudio
               deskFiles={filesView?.desk_files || []}
@@ -314,6 +337,9 @@ export const ProjectShell: React.FC = () => {
               documentId={selectedFile}
               relativePath={selectedFile}
               initialContent={fileContent}
+              onSaveStatusChange={(status) => {
+                markTabDirty(selectedFile, status === 'dirty');
+              }}
             />
           ) : (
             <div className="canvas-empty-state">
@@ -341,6 +367,7 @@ export const ProjectShell: React.FC = () => {
             </div>
           )}
         </main>
+        </div>
       </div>
 
       {/* Context Menu */}
@@ -368,7 +395,7 @@ export const ProjectShell: React.FC = () => {
             setDeleteModalState({ open: true, targetPath: path })
           }
           onImport={(sectionOrFolder) =>
-            setImportModalState({ open: true, section: sectionOrFolder })
+            setImportModalState({ open: true, section: sectionOrFolder || 'Manuscript' })
           }
         />
       )}
