@@ -10,6 +10,7 @@ import {
   FilePlus,
   ChevronDown,
   ChevronRight,
+  UploadCloud,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -27,6 +28,7 @@ export interface SidebarProps {
   onContextMenu: (e: React.MouseEvent, node: TreeNode | null, section: string | null) => void;
   onRenameCommit: (oldRelative: string, newRelative: string) => Promise<void>;
   onMoveFile: (sourceRelative: string, targetRelative: string) => Promise<void>;
+  onOpenImport?: (section?: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -43,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onContextMenu,
   onRenameCommit,
   onMoveFile,
+  onOpenImport,
 }) => {
   if (collapsed) return null;
 
@@ -83,6 +86,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <div className="section-actions">
+          {onOpenImport && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenImport(sectionKey);
+              }}
+              className="section-action-btn"
+              title={`Import files or folders into ${title}`}
+            >
+              <UploadCloud size={12} />
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -114,6 +129,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <FilePlus size={14} />
           <span>New Chapter</span>
         </button>
+        {onOpenImport && (
+          <button
+            onClick={() => onOpenImport('Manuscript')}
+            className="quick-action-btn icon-only"
+            title="Import Files or Folder"
+          >
+            <UploadCloud size={14} />
+          </button>
+        )}
         <button
           onClick={onRefreshFiles}
           className="quick-action-btn icon-only"

@@ -28,6 +28,7 @@ import {
   PaginationResult,
   DiscoveredPlugin,
   PluginStateConfig,
+  ImportSummary,
 } from '../types/ipc';
 
 export const SwriteIpc = {
@@ -89,6 +90,28 @@ export const SwriteIpc = {
 
   fileImport: (sourceAbsolutePath: string, targetRelativePath: string) =>
     invoke<string>('file_import', { sourceAbsolutePath, targetRelativePath }),
+
+  fileImportBatch: (
+    sourceAbsolutePaths: string[],
+    targetSection: string,
+    conflictStrategy: 'rename' | 'skip' | 'overwrite' = 'rename'
+  ) =>
+    invoke<ImportSummary>('file_import_batch', {
+      sourceAbsolutePaths,
+      targetSection,
+      conflictStrategy,
+    }),
+
+  folderImportRecursive: (
+    sourceFolderAbsolutePath: string,
+    targetSection: string,
+    conflictStrategy: 'rename' | 'skip' | 'overwrite' = 'rename'
+  ) =>
+    invoke<ImportSummary>('folder_import_recursive', {
+      sourceFolderAbsolutePath,
+      targetSection,
+      conflictStrategy,
+    }),
 
   fileExists: (relativePath: string) =>
     invoke<boolean>('file_exists', { relativePath }),

@@ -1,5 +1,10 @@
 import { ProjectShell } from './shell';
+import { ThemeProvider } from './theme';
 
 export function App() {
-  return <ProjectShell />;
+  return (
+    <ThemeProvider>
+      <ProjectShell />
+    </ThemeProvider>
+  );
 }

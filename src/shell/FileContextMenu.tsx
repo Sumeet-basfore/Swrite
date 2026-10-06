@@ -8,6 +8,7 @@ import {
   Edit2,
   Trash2,
   Clipboard,
+  UploadCloud,
 } from 'lucide-react';
 
 export interface FileContextMenuProps {
@@ -24,6 +25,7 @@ export interface FileContextMenuProps {
   onRename: (node: TreeNode) => void;
   onDuplicate: (path: string) => void;
   onDeleteSafe: (path: string) => void;
+  onImport?: (sectionOrFolder: string) => void;
 }
 
 export const FileContextMenu: React.FC<FileContextMenuProps> = ({
@@ -40,6 +42,7 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = ({
   onRename,
   onDuplicate,
   onDeleteSafe,
+  onImport,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -166,6 +169,18 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = ({
             <FolderPlus size={14} />
             <span>New Subfolder</span>
           </button>
+          {onImport && (
+            <button
+              className="menu-item"
+              onClick={() => {
+                onImport(node.relativePath);
+                onClose();
+              }}
+            >
+              <UploadCloud size={14} />
+              <span>Import into Folder...</span>
+            </button>
+          )}
           <div className="menu-divider" />
           <button
             className="menu-item"
@@ -233,6 +248,21 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = ({
             <FolderPlus size={14} />
             <span>New Folder in {section}</span>
           </button>
+          {onImport && (
+            <>
+              <div className="menu-divider" />
+              <button
+                className="menu-item"
+                onClick={() => {
+                  onImport(section);
+                  onClose();
+                }}
+              >
+                <UploadCloud size={14} />
+                <span>Import into {section}...</span>
+              </button>
+            </>
+          )}
         </>
       )}
     </div>

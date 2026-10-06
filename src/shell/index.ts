@@ -9,4 +9,5 @@ export * from './SearchModal';
 export * from './RecentFilesMenu';
 export * from './DeleteConfirmModal';
 export * from './NewDocumentDialog';
+export * from './ImportModal';
 export * from './ProjectShell';

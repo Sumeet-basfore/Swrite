@@ -40,6 +40,8 @@ pub fn run() {
             commands::file_delete,
             commands::file_delete_safe,
             commands::file_import,
+            commands::file_import_batch,
+            commands::folder_import_recursive,
             commands::file_exists,
             commands::file_metadata,
             commands::document_read,

@@ -15,6 +15,7 @@ import {
   CheckSquare,
   Printer,
   Puzzle,
+  Palette,
 } from 'lucide-react';
 
 export interface ShellHeaderProps {
@@ -29,6 +30,7 @@ export interface ShellHeaderProps {
   onToggleSidebar: () => void;
   onOpenSearch: () => void;
   onToggleRecents: () => void;
+  onOpenThemePicker?: () => void;
   onToggleFocusMode: () => void;
   onToggleDevDrawer: () => void;
   showDevDrawer: boolean;
@@ -48,6 +50,7 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   onToggleSidebar,
   onOpenSearch,
   onToggleRecents,
+  onOpenThemePicker,
   onToggleFocusMode,
   onToggleDevDrawer,
   showDevDrawer,
@@ -168,6 +171,16 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
         >
           <Clock size={15} />
         </button>
+
+        {onOpenThemePicker && (
+          <button
+            onClick={onOpenThemePicker}
+            className="header-btn"
+            title="Personal Themes & Color Palette"
+          >
+            <Palette size={15} />
+          </button>
+        )}
 
         {onTogglePlugins && (
           <button

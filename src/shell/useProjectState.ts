@@ -6,6 +6,7 @@ import {
   ProjectUiState,
   RecentDocumentEntry,
   SearchResult,
+  ImportSummary,
 } from '../types/ipc';
 
 export interface UseProjectStateReturn {
@@ -39,6 +40,16 @@ export interface UseProjectStateReturn {
   duplicateFile: (relative: string) => Promise<string>;
   deleteFileSafe: (relative: string) => Promise<void>;
   importFile: (sourceAbsPath: string, targetRelative: string) => Promise<string>;
+  importBatch: (
+    sourceAbsolutePaths: string[],
+    targetSection: string,
+    conflictStrategy?: 'rename' | 'skip' | 'overwrite'
+  ) => Promise<ImportSummary>;
+  importFolder: (
+    sourceFolderAbsolutePath: string,
+    targetSection: string,
+    conflictStrategy?: 'rename' | 'skip' | 'overwrite'
+  ) => Promise<ImportSummary>;
   searchProject: (query: string) => Promise<void>;
   clearSearch: () => void;
   openSearchResult: (relativePath: string, query: string) => Promise<void>;
@@ -362,6 +373,28 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
     return newPath;
   };
 
+  const importBatch = async (
+    sourceAbsolutePaths: string[],
+    targetSection: string,
+    conflictStrategy: 'rename' | 'skip' | 'overwrite' = 'rename'
+  ): Promise<ImportSummary> => {
+    const summary = await SwriteIpc.fileImportBatch(sourceAbsolutePaths, targetSection, conflictStrategy);
+    await refreshFiles();
+    log(`Imported batch: ${summary.imported_files.length} files (${summary.total_found} scanned) into ${targetSection}`);
+    return summary;
+  };
+
+  const importFolder = async (
+    sourceFolderAbsolutePath: string,
+    targetSection: string,
+    conflictStrategy: 'rename' | 'skip' | 'overwrite' = 'rename'
+  ): Promise<ImportSummary> => {
+    const summary = await SwriteIpc.folderImportRecursive(sourceFolderAbsolutePath, targetSection, conflictStrategy);
+    await refreshFiles();
+    log(`Imported folder: ${summary.imported_files.length} files into ${targetSection}`);
+    return summary;
+  };
+
   const searchProject = async (query: string) => {
     if (!query.trim()) {
       setSearchResult(null);
@@ -419,6 +452,8 @@ export function useProjectState(initialPath = '/tmp/swrite-sample-novel', initia
     duplicateFile,
     deleteFileSafe,
     importFile,
+    importBatch,
+    importFolder,
     searchProject,
     clearSearch,
     openSearchResult,

@@ -8,9 +8,78 @@ use crate::project::identity::IdentityManager;
 use crate::project::manifest::ProjectManifest;
 use crate::state::AppState;
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use tauri::State;
+use walkdir::WalkDir;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ImportSummary {
+    pub total_found: usize,
+    pub imported_count: usize,
+    pub skipped_count: usize,
+    pub conflict_count: usize,
+    pub unsupported_count: usize,
+    pub imported_files: Vec<String>,
+    pub skipped_files: Vec<String>,
+    pub errors: Vec<String>,
+}
+
+pub fn is_supported_document_extension(ext: &str) -> bool {
+    let lower = ext.to_lowercase();
+    matches!(lower.as_str(), "md" | "markdown" | "txt" | "docx")
+}
+
+pub fn is_supported_asset_extension(ext: &str) -> bool {
+    let lower = ext.to_lowercase();
+    matches!(lower.as_str(), "png" | "jpg" | "jpeg" | "gif" | "webp" | "svg")
+}
+
+pub fn is_ignored_file_or_dir(name: &str) -> bool {
+    name.starts_with('.')
+        || name.starts_with('~')
+        || name.ends_with(".tmp")
+        || name.ends_with(".bak")
+        || name.ends_with(".swp")
+        || name == "Thumbs.db"
+        || name == "desktop.ini"
+        || name == "node_modules"
+        || name == "__pycache__"
+        || name == ".swrite"
+        || name == ".git"
+        || name == ".vscode"
+        || name == ".idea"
+        || name == ".obsidian"
+}
+
+pub fn resolve_unique_target_rel(root: &Path, target_rel: &str) -> String {
+    if !path_exists(root, target_rel, false) {
+        return target_rel.to_string();
+    }
+
+    let p = Path::new(target_rel);
+    let parent = p.parent().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
+    let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
+    let ext = p.extension().and_then(|e| e.to_str()).map(|e| format!(".{}", e)).unwrap_or_default();
+
+    let mut candidate = if parent.is_empty() {
+        format!("{} (Imported){}", stem, ext)
+    } else {
+        format!("{}/{} (Imported){}", parent, stem, ext)
+    };
+
+    let mut counter = 2;
+    while path_exists(root, &candidate, false) {
+        candidate = if parent.is_empty() {
+            format!("{} (Imported {}){}", stem, counter, ext)
+        } else {
+            format!("{}/{} (Imported {}){}", parent, stem, counter, ext)
+        };
+        counter += 1;
+    }
+    candidate
+}
 
 #[tauri::command]
 pub async fn file_read(
@@ -162,7 +231,6 @@ pub async fn file_duplicate(
     let stem = src_path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
     let ext = src_path.extension().and_then(|e| e.to_str()).map(|e| format!(".{}", e)).unwrap_or_default();
 
-    // Find non-conflicting duplicate name
     let mut candidate_rel = if parent.is_empty() {
         format!("{} copy{}", stem, ext)
     } else {
@@ -303,6 +371,287 @@ pub async fn file_import(
     }
 
     Ok(target_relative_path)
+}
+
+#[tauri::command]
+pub async fn file_import_batch(
+    state: State<'_, AppState>,
+    source_absolute_paths: Vec<String>,
+    target_section: String,
+    conflict_strategy: String,
+) -> std::result::Result<ImportSummary, SwriteError> {
+    let root = state
+        .get_active_project_root()
+        .ok_or(SwriteError::Project(ProjectError::NoActiveProject))?;
+
+    let mut summary = ImportSummary {
+        total_found: source_absolute_paths.len(),
+        imported_count: 0,
+        skipped_count: 0,
+        conflict_count: 0,
+        unsupported_count: 0,
+        imported_files: Vec::new(),
+        skipped_files: Vec::new(),
+        errors: Vec::new(),
+    };
+
+    let mut new_identities = Vec::new();
+
+    for src_path_str in &source_absolute_paths {
+        let src_path = Path::new(src_path_str);
+        if !src_path.exists() || !src_path.is_file() {
+            summary.errors.push(format!("File not found: {}", src_path_str));
+            continue;
+        }
+
+        let file_name = match src_path.file_name().and_then(|n| n.to_str()) {
+            Some(n) => n,
+            None => {
+                summary.unsupported_count += 1;
+                continue;
+            }
+        };
+
+        if is_ignored_file_or_dir(file_name) {
+            summary.skipped_count += 1;
+            summary.skipped_files.push(file_name.to_string());
+            continue;
+        }
+
+        let ext = src_path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+
+        let is_doc = is_supported_document_extension(&ext);
+        let is_asset = is_supported_asset_extension(&ext);
+
+        if !is_doc && !is_asset {
+            summary.unsupported_count += 1;
+            continue;
+        }
+
+        let default_section = if target_section.is_empty() {
+            if is_asset {
+                "Assets"
+            } else {
+                "Manuscript"
+            }
+        } else {
+            &target_section
+        };
+
+        let target_relative_raw = format!("{}/{}", default_section, file_name);
+
+        let final_target_rel = if path_exists(&root, &target_relative_raw, false) {
+            summary.conflict_count += 1;
+            match conflict_strategy.as_str() {
+                "skip" => {
+                    summary.skipped_count += 1;
+                    summary.skipped_files.push(target_relative_raw);
+                    continue;
+                }
+                "overwrite" => target_relative_raw,
+                _ => resolve_unique_target_rel(&root, &target_relative_raw),
+            }
+        } else {
+            target_relative_raw
+        };
+
+        match resolve_secure_path(&root, &final_target_rel, false) {
+            Ok(target_abs) => {
+                if let Some(parent) = target_abs.parent() {
+                    let _ = fs::create_dir_all(parent);
+                }
+                if let Err(e) = fs::copy(src_path, &target_abs) {
+                    summary.errors.push(format!("Failed to copy {}: {}", file_name, e));
+                    continue;
+                }
+
+                new_identities.push(final_target_rel.clone());
+
+                if is_doc {
+                    if let Ok(content) = read_file_string(&root, &final_target_rel, false) {
+                        state.search_index.write().update_document(&final_target_rel, &content);
+                    }
+                }
+
+                summary.imported_count += 1;
+                summary.imported_files.push(final_target_rel);
+            }
+            Err(e) => {
+                summary.errors.push(format!("Security error for {}: {}", file_name, e));
+            }
+        }
+    }
+
+    // Register all new identities in manifest
+    let manifest_path = root.join(".swrite").join("project.json");
+    if manifest_path.exists() && !new_identities.is_empty() {
+        if let Ok(manifest_str) = fs::read_to_string(&manifest_path) {
+            if let Ok(mut manifest) = serde_json::from_str::<ProjectManifest>(&manifest_str) {
+                for rel in new_identities {
+                    let id = uuid::Uuid::new_v4().to_string();
+                    manifest.document_identities.insert(id, rel);
+                }
+                if let Ok(json) = serde_json::to_string_pretty(&manifest) {
+                    let _ = fs::write(&manifest_path, json);
+                }
+            }
+        }
+    }
+
+    Ok(summary)
+}
+
+#[tauri::command]
+pub async fn folder_import_recursive(
+    state: State<'_, AppState>,
+    source_folder_absolute_path: String,
+    target_section: String,
+    conflict_strategy: String,
+) -> std::result::Result<ImportSummary, SwriteError> {
+    let root = state
+        .get_active_project_root()
+        .ok_or(SwriteError::Project(ProjectError::NoActiveProject))?;
+
+    let src_folder = Path::new(&source_folder_absolute_path);
+    if !src_folder.exists() || !src_folder.is_dir() {
+        return Err(SwriteError::Filesystem(crate::error::FilesystemError::NotFound(
+            source_folder_absolute_path,
+        )));
+    }
+
+    let mut summary = ImportSummary {
+        total_found: 0,
+        imported_count: 0,
+        skipped_count: 0,
+        conflict_count: 0,
+        unsupported_count: 0,
+        imported_files: Vec::new(),
+        skipped_files: Vec::new(),
+        errors: Vec::new(),
+    };
+
+    let mut new_identities = Vec::new();
+    let default_section = if target_section.is_empty() {
+        "Manuscript"
+    } else {
+        &target_section
+    };
+
+    let walker = WalkDir::new(src_folder).into_iter();
+
+    for entry_res in walker.filter_entry(|e| {
+        let name = e.file_name().to_string_lossy();
+        !is_ignored_file_or_dir(&name)
+    }) {
+        let entry = match entry_res {
+            Ok(e) => e,
+            Err(err) => {
+                summary.errors.push(format!("Walk error: {}", err));
+                continue;
+            }
+        };
+
+        let file_type = entry.file_type();
+        if file_type.is_dir() {
+            continue;
+        }
+
+        summary.total_found += 1;
+
+        let src_path = entry.path();
+        let file_name = entry.file_name().to_string_lossy();
+
+        if is_ignored_file_or_dir(&file_name) {
+            summary.skipped_count += 1;
+            summary.skipped_files.push(file_name.to_string());
+            continue;
+        }
+
+        let ext = src_path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+
+        let is_doc = is_supported_document_extension(&ext);
+        let is_asset = is_supported_asset_extension(&ext);
+
+        if !is_doc && !is_asset {
+            summary.unsupported_count += 1;
+            continue;
+        }
+
+        // Relative path inside source folder
+        let rel_in_src = match src_path.strip_prefix(src_folder) {
+            Ok(p) => p.to_string_lossy().replace('\\', "/"),
+            Err(_) => file_name.to_string(),
+        };
+
+        let target_relative_raw = format!("{}/{}", default_section, rel_in_src);
+
+        let final_target_rel = if path_exists(&root, &target_relative_raw, false) {
+            summary.conflict_count += 1;
+            match conflict_strategy.as_str() {
+                "skip" => {
+                    summary.skipped_count += 1;
+                    summary.skipped_files.push(target_relative_raw);
+                    continue;
+                }
+                "overwrite" => target_relative_raw,
+                _ => resolve_unique_target_rel(&root, &target_relative_raw),
+            }
+        } else {
+            target_relative_raw
+        };
+
+        match resolve_secure_path(&root, &final_target_rel, false) {
+            Ok(target_abs) => {
+                if let Some(parent) = target_abs.parent() {
+                    let _ = fs::create_dir_all(parent);
+                }
+                if let Err(e) = fs::copy(src_path, &target_abs) {
+                    summary.errors.push(format!("Failed to copy {}: {}", file_name, e));
+                    continue;
+                }
+
+                new_identities.push(final_target_rel.clone());
+
+                if is_doc {
+                    if let Ok(content) = read_file_string(&root, &final_target_rel, false) {
+                        state.search_index.write().update_document(&final_target_rel, &content);
+                    }
+                }
+
+                summary.imported_count += 1;
+                summary.imported_files.push(final_target_rel);
+            }
+            Err(e) => {
+                summary.errors.push(format!("Security error for {}: {}", file_name, e));
+            }
+        }
+    }
+
+    // Register all new identities in manifest
+    let manifest_path = root.join(".swrite").join("project.json");
+    if manifest_path.exists() && !new_identities.is_empty() {
+        if let Ok(manifest_str) = fs::read_to_string(&manifest_path) {
+            if let Ok(mut manifest) = serde_json::from_str::<ProjectManifest>(&manifest_str) {
+                for rel in new_identities {
+                    let id = uuid::Uuid::new_v4().to_string();
+                    manifest.document_identities.insert(id, rel);
+                }
+                if let Ok(json) = serde_json::to_string_pretty(&manifest) {
+                    let _ = fs::write(&manifest_path, json);
+                }
+            }
+        }
+    }
+
+    Ok(summary)
 }
 
 #[tauri::command]

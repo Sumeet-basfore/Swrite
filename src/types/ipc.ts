@@ -540,4 +540,15 @@ export interface PluginStateConfig {
   enabled_plugins: Record<string, boolean>;
 }
 
+export interface ImportSummary {
+  total_found: number;
+  imported_count: number;
+  skipped_count: number;
+  conflict_count: number;
+  unsupported_count: number;
+  imported_files: string[];
+  skipped_files: string[];
+  errors: string[];
+}
+
 

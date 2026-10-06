@@ -7,6 +7,8 @@ import { SearchModal } from './SearchModal';
 import { RecentFilesMenu } from './RecentFilesMenu';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { NewDocumentDialog } from './NewDocumentDialog';
+import { ImportModal } from './ImportModal';
+import { ThemePickerModal } from '../theme';
 import { EditorCanvas } from '../editor';
 import { PlanningStudio } from '../planning';
 import { DeskStudio, SplitDeskContainer } from '../desk';
@@ -42,6 +44,8 @@ export const ProjectShell: React.FC = () => {
     moveFile,
     duplicateFile,
     deleteFileSafe,
+    importBatch,
+    importFolder,
     searchProject,
     openSearchResult,
   } = useProjectState();
@@ -53,6 +57,11 @@ export const ProjectShell: React.FC = () => {
   const [showPluginsDrawer, setShowPluginsDrawer] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [recentsMenuOpen, setRecentsMenuOpen] = useState(false);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
+  const [importModalState, setImportModalState] = useState<{ open: boolean; section: string }>({
+    open: false,
+    section: 'Manuscript',
+  });
 
   const {
     plugins,
@@ -205,6 +214,7 @@ export const ProjectShell: React.FC = () => {
         onToggleSidebar={toggleSidebar}
         onOpenSearch={() => setSearchModalOpen(true)}
         onToggleRecents={() => setRecentsMenuOpen((prev) => !prev)}
+        onOpenThemePicker={() => setThemePickerOpen(true)}
         onToggleFocusMode={() => setFocusMode((prev) => !prev)}
         onToggleDevDrawer={() => setShowDevDrawer((prev) => !prev)}
         showDevDrawer={showDevDrawer}
@@ -237,6 +247,9 @@ export const ProjectShell: React.FC = () => {
             onContextMenu={handleContextMenu}
             onRenameCommit={renameFile}
             onMoveFile={moveFile}
+            onOpenImport={(section) =>
+              setImportModalState({ open: true, section: section || 'Manuscript' })
+            }
           />
         )}
 
@@ -354,6 +367,9 @@ export const ProjectShell: React.FC = () => {
           onDeleteSafe={(path) =>
             setDeleteModalState({ open: true, targetPath: path })
           }
+          onImport={(sectionOrFolder) =>
+            setImportModalState({ open: true, section: sectionOrFolder })
+          }
         />
       )}
 
@@ -402,6 +418,25 @@ export const ProjectShell: React.FC = () => {
           setNewDialogState((s) => ({ ...s, open: false }));
         }}
         onCancel={() => setNewDialogState((s) => ({ ...s, open: false }))}
+      />
+
+      {/* Personal Theme Picker Modal */}
+      <ThemePickerModal
+        isOpen={themePickerOpen}
+        onClose={() => setThemePickerOpen(false)}
+      />
+
+      {/* File and Folder Import Modal */}
+      <ImportModal
+        open={importModalState.open}
+        initialSection={importModalState.section}
+        onClose={() => setImportModalState({ open: false, section: 'Manuscript' })}
+        onImportBatch={importBatch}
+        onImportFolder={importFolder}
+        onOpenFile={(path) => {
+          setStudioMode('write');
+          openDocument(path);
+        }}
       />
 
       {/* Core IPC Inspector Drawer */}
