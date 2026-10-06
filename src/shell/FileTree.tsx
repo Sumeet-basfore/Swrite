@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { reportError } from '../lib/errors';
 import { TreeNode } from './types';
 import {
   Folder,
@@ -56,7 +57,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
     try {
       await onRenameCommit(node.relativePath, newRelative);
     } catch (e) {
-      console.error('Rename failed:', e);
+      reportError('file-rename', e, { notify: true });
     } finally {
       setEditingNodeId(null);
     }

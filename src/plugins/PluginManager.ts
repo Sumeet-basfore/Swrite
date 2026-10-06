@@ -1,4 +1,5 @@
 import { DiscoveredPlugin } from '../types/ipc';
+import { reportError } from '../lib/errors';
 import { createPluginContext } from './PluginContext';
 import { ActivePluginInstance, EditorExtensionApi, PluginCommand, PluginPanel } from './types';
 
@@ -109,7 +110,8 @@ export class PluginManager {
         },
       });
     } catch (err: any) {
-      console.error(`Failed to activate plugin ${item.manifest.id}:`, err);
+      // Drawer already shows errorMessage; console record only, no toast.
+      reportError(`plugin-activate:${item.manifest.id}`, err);
       // Clean up partial registrations
       for (const cmd of pluginCommands) {
         this.commands.delete(cmd.id);

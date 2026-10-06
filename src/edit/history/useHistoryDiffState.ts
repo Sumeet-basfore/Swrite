@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SwriteIpc } from '../../lib/ipc';
+import { reportError } from '../../lib/errors';
 import { DocumentDiffResult, SnapshotMetadata } from '../../types/ipc';
 
 interface UseHistoryDiffStateProps {
@@ -46,7 +47,7 @@ export function useHistoryDiffState({ currentDocumentPath }: UseHistoryDiffState
           setSelectedSnapshotId(null);
         }
       } catch (e) {
-        console.error('Failed to load history list for document:', e);
+        reportError('history-load', e);
       } finally {
         if (isMounted) setLoadingSnapshots(false);
       }
@@ -99,7 +100,7 @@ export function useHistoryDiffState({ currentDocumentPath }: UseHistoryDiffState
           if (isMounted) setDiffResult(diff);
         }
       } catch (e) {
-        console.error('Failed to compute diff:', e);
+        reportError('history-diff', e);
       } finally {
         if (isMounted) setLoadingDiff(false);
       }
@@ -125,7 +126,7 @@ export function useHistoryDiffState({ currentDocumentPath }: UseHistoryDiffState
         setSnapshots((prev) => [meta, ...prev]);
         setSelectedSnapshotId(meta.snapshot_id);
       } catch (e) {
-        console.error('Failed to create snapshot:', e);
+        reportError('history-snapshot-create', e, { notify: true });
       }
     },
     [documentId, currentDocumentPath]
@@ -151,7 +152,7 @@ export function useHistoryDiffState({ currentDocumentPath }: UseHistoryDiffState
         setSelectedSnapshotId(snapshotId);
         return restoredContent;
       } catch (e) {
-        console.error('Failed to restore snapshot:', e);
+        reportError('history-restore', e, { notify: true });
         throw e;
       } finally {
         setRestoring(false);

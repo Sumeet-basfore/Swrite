@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SwriteIpc } from '../../lib/ipc';
+import { reportError } from '../../lib/errors';
 import { DiscoveredFile } from '../../types/ipc';
 import {
   ReviewFilters,
@@ -132,7 +133,7 @@ export function useReviewState({
       setItems(queue);
       setSelectedIndex(0);
     } catch (e) {
-      console.error('Failed to load review items:', e);
+      reportError('review-load', e);
     } finally {
       setLoading(false);
     }
@@ -225,7 +226,7 @@ export function useReviewState({
           setItems((prev) => prev.filter((i) => i.id !== item.id));
         }
       } catch (e) {
-        console.error('Failed to apply replacement:', e);
+        reportError('review-apply-replacement', e, { notify: true });
       }
     },
     []

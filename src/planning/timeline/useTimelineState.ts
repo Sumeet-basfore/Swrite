@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SwriteIpc } from '../../lib/ipc';
+import { reportError } from '../../lib/errors';
 import { TimelineData, TimelineEvent } from '../../types/ipc';
 
 export function useTimelineState(onOpenFile: (path: string) => void) {
@@ -17,7 +18,7 @@ export function useTimelineState(onOpenFile: (path: string) => void) {
       const data = await SwriteIpc.timelineLoad();
       setEvents(data.events || []);
     } catch (e) {
-      console.error('Failed to load timeline:', e);
+      reportError('timeline-load', e, { notify: true });
     } finally {
       setIsLoading(false);
     }
@@ -33,7 +34,7 @@ export function useTimelineState(onOpenFile: (path: string) => void) {
       const data: TimelineData = { events: newEvents };
       await SwriteIpc.timelineSave(data);
     } catch (e) {
-      console.error('Failed to save timeline:', e);
+      reportError('timeline-save', e, { notify: true });
     }
   };
 

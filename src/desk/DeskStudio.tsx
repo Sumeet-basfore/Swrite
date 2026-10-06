@@ -8,6 +8,7 @@ import { DeskBacklinksPanel } from './DeskBacklinksPanel';
 import { MoodboardCanvas } from './moodboard/MoodboardCanvas';
 import { DESK_TEMPLATES } from './templates';
 import { SwriteIpc } from '../lib/ipc';
+import { reportError } from '../lib/errors';
 import {
   Search,
   LayoutGrid,
@@ -149,7 +150,7 @@ export const DeskStudio: React.FC<DeskStudioProps> = ({
       await onRefreshFiles();
       onOpenFile(targetPath);
     } catch (e) {
-      console.error('Failed to create desk document:', e);
+      reportError('desk-create-document', e, { notify: true });
     } finally {
       setNewMenuOpen(false);
     }
@@ -164,7 +165,7 @@ export const DeskStudio: React.FC<DeskStudioProps> = ({
       await onRefreshFiles();
       setActiveMoodboardPath(boardPath);
     } catch (e) {
-      console.error('Failed to create moodboard:', e);
+      reportError('desk-create-moodboard', e, { notify: true });
     } finally {
       setNewMenuOpen(false);
     }
@@ -178,7 +179,7 @@ export const DeskStudio: React.FC<DeskStudioProps> = ({
       await SwriteIpc.fileMkdir(folder.trim());
       await onRefreshFiles();
     } catch (e) {
-      console.error('Failed to create folder:', e);
+      reportError('desk-create-folder', e, { notify: true });
     } finally {
       setNewMenuOpen(false);
     }
@@ -206,7 +207,7 @@ export const DeskStudio: React.FC<DeskStudioProps> = ({
       await SwriteIpc.fileDeleteSafe(deleteTarget.file.relative_path);
       await onRefreshFiles();
     } catch (e) {
-      console.error('Failed to delete desk item:', e);
+      reportError('desk-delete', e, { notify: true });
     } finally {
       setDeleteTarget(null);
     }

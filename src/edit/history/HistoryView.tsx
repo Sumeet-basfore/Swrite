@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useHistoryDiffState } from './useHistoryDiffState';
 import { DiffViewer } from './DiffViewer';
 import { DiscoveredFile } from '../../types/ipc';
+import { reportError } from '../../lib/errors';
 
 interface HistoryViewProps {
   currentDocumentPath: string | null;
@@ -48,7 +49,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
       setShowRestoreConfirm(false);
       if (onRestoreSuccess) onRestoreSuccess();
     } catch (e) {
-      console.error('Failed to restore:', e);
+      // Already user-notified inside safeRestore; keep the console record only.
+      reportError('history-restore-view', e);
     }
   };
 

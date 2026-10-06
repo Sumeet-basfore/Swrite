@@ -3,6 +3,7 @@ import { SwriteIpc } from '../../lib/ipc';
 import { DiscoveredFile, ItemPlanningMeta } from '../../types/ipc';
 import { OutlineItem, SceneWorkflowStatus } from '../types';
 import { naturalCompare } from '../../shell/treeUtils';
+import { reportError } from '../../lib/errors';
 
 export function useOutlineState(
   manuscriptFiles: DiscoveredFile[],
@@ -130,7 +131,7 @@ export function useOutlineState(
     try {
       await SwriteIpc.outlineMetaUpdateItem(updated);
     } catch (e) {
-      console.error('Failed to save item planning meta:', e);
+      reportError('outline-save', e, { notify: true });
     }
   };
 

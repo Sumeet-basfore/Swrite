@@ -16,8 +16,11 @@ import { DeskStudio, SplitDeskContainer } from '../desk';
 import { EditStudio } from '../edit';
 import { PublishStudio } from '../publish';
 import { usePlugins, PluginDrawer } from '../plugins';
+import { ErrorBoundary } from './ErrorBoundary';
+import { ErrorToast } from './ErrorToast';
 import { ContextMenuState, TreeNode } from './types';
 import { SwriteIpc } from '../lib/ipc';
+import { reportError } from '../lib/errors';
 import './shell.css';
 
 export const ProjectShell: React.FC = () => {
@@ -177,7 +180,7 @@ export const ProjectShell: React.FC = () => {
       setSplitDocument({ path: targetPath, content });
       setStudioMode('write');
     } catch (e) {
-      console.error('Failed to open split document:', e);
+      reportError('split-open', e, { notify: true });
     }
   };
 
@@ -298,6 +301,7 @@ export const ProjectShell: React.FC = () => {
           {/* Main Document Workspace / Planning Studio / Creative Desk */}
           <main className="swrite-shell-canvas-area" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             {studioMode === 'plan' ? (
+              <ErrorBoundary key="studio-plan" name="Planning Studio">
               <PlanningStudio
                 manuscriptFiles={filesView?.manuscript_files || []}
                 planningFiles={filesView?.planning_files || []}
@@ -306,7 +310,9 @@ export const ProjectShell: React.FC = () => {
                 }}
                 onRefreshFiles={refreshFiles}
               />
+              </ErrorBoundary>
           ) : studioMode === 'desk' ? (
+            <ErrorBoundary key="studio-desk" name="Creative Desk">
             <DeskStudio
               deskFiles={filesView?.desk_files || []}
               assetFiles={filesView?.asset_files || []}
@@ -317,7 +323,9 @@ export const ProjectShell: React.FC = () => {
               onOpenSplitFile={handleOpenSplitDocument}
               onRefreshFiles={refreshFiles}
             />
+            </ErrorBoundary>
           ) : studioMode === 'edit' ? (
+            <ErrorBoundary key="studio-edit" name="Edit Studio">
             <EditStudio
               currentDocumentPath={selectedFile}
               manuscriptFiles={filesView?.manuscript_files || []}
@@ -329,7 +337,9 @@ export const ProjectShell: React.FC = () => {
                 openDocument(path);
               }}
             />
+            </ErrorBoundary>
           ) : studioMode === 'publish' ? (
+            <ErrorBoundary key="studio-publish" name="Publish Studio">
             <PublishStudio
               projectRoot={activeProject?.root_path || ''}
               projectName={activeProject?.name || 'Manuscript'}
@@ -338,7 +348,9 @@ export const ProjectShell: React.FC = () => {
                 openDocument(path);
               }}
             />
+            </ErrorBoundary>
           ) : splitDocument && selectedFile ? (
+            <ErrorBoundary key="split-desk" name="Split view">
             <SplitDeskContainer
               primaryDocumentPath={selectedFile}
               primaryFileContent={fileContent}
@@ -349,7 +361,9 @@ export const ProjectShell: React.FC = () => {
               onOpenDocument={openDocument}
               onRefreshFiles={refreshFiles}
             />
+            </ErrorBoundary>
           ) : selectedFile && !isLoading ? (
+            <ErrorBoundary key={`editor-${selectedFile}`} name="Editor">
             <EditorCanvas
               key={selectedFile}
               documentId={selectedFile}
@@ -360,6 +374,7 @@ export const ProjectShell: React.FC = () => {
                 markTabDirty(selectedFile, status === 'dirty');
               }}
             />
+            </ErrorBoundary>
           ) : (
             <div className="canvas-empty-state">
               <div className="empty-message-box">
@@ -501,6 +516,9 @@ export const ProjectShell: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* User-visible error toasts (reported persist/render failures) */}
+      <ErrorToast />
 
       {/* Local Extensions & Plugins Drawer */}
       {showPluginsDrawer && (

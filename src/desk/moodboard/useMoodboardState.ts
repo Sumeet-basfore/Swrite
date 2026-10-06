@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SwriteIpc } from '../../lib/ipc';
+import { reportError } from '../../lib/errors';
 import { MoodboardData, MoodboardItem } from '../types';
 
 export function useMoodboardState(
@@ -25,7 +26,7 @@ export function useMoodboardState(
       latestBoardRef.current = data;
       setBoard(data);
     } catch (e) {
-      console.error('Failed to load moodboard:', e);
+      reportError('moodboard-load', e, { notify: true });
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +50,7 @@ export function useMoodboardState(
       try {
         await SwriteIpc.moodboardSave(boardPath, newBoard);
       } catch (err) {
-        console.error('Failed to persist moodboard:', err);
+        reportError('moodboard-save', err, { notify: true });
       } finally {
         setIsSaving(false);
       }

@@ -1122,3 +1122,101 @@ input:checked + .slider:before {
   border-radius: 50%;
 }
 
+/* Render-crash fallback (ErrorBoundary): flat, quiet, theme-aware */
+.swrite-error-fallback {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px;
+  background: var(--app-bg, #f9f8f6);
+  color: var(--text-primary, #2b2b2b);
+  font-family: var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+.swrite-error-fallback h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.swrite-error-message {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #5a5855);
+  font-family: var(--font-mono);
+}
+
+.swrite-error-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted, #8c8983);
+}
+
+.swrite-error-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.swrite-error-btn {
+  border: 1px solid var(--border-quiet, #e5e7eb);
+  background: var(--app-surface, #ffffff);
+  color: var(--text-primary, #2b2b2b);
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.swrite-error-btn.primary {
+  background: var(--accent, #4a5568);
+  border-color: var(--accent, #4a5568);
+  color: var(--accent-fg, #ffffff);
+}
+
+/* User-visible error toasts */
+.swrite-error-toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1200;
+  max-width: min(380px, 90vw);
+}
+
+.swrite-error-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--app-surface, #ffffff);
+  color: var(--text-primary, #2b2b2b);
+  border: 1px solid var(--color-error, #ef4444);
+  border-left-width: 3px;
+  border-radius: 8px;
+  padding: 10px 10px 10px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  font-size: 0.82rem;
+}
+
+.swrite-error-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.swrite-error-toast-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #8c8983);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+}

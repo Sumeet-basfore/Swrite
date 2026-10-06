@@ -54,8 +54,12 @@ pub fn reconcile_content(
         };
     }
 
-    let disk_str = disk_content.unwrap();
-    let disk_h = disk_hash.clone().unwrap();
+    // Guarded by the DeletedOnDisk early-return above; expect (not unwrap)
+    // so any future reorder fails loudly at this line instead of deep in logic.
+    let disk_str = disk_content.expect("reconcile_content: disk_content present after DeletedOnDisk check");
+    let disk_h = disk_hash
+        .clone()
+        .expect("reconcile_content: disk_hash derived from present disk_content");
 
     // Case 2: Identical
     if user_hash == disk_h {

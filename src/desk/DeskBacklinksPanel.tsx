@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { SwriteIpc } from '../lib/ipc';
+import { reportError } from '../lib/errors';
 import { Link2, FileText, ArrowRight } from 'lucide-react';
 
 export interface DeskBacklinksPanelProps {
@@ -29,7 +30,7 @@ export const DeskBacklinksPanel: React.FC<DeskBacklinksPanelProps> = ({
         if (isMounted) setBacklinks(links);
       })
       .catch((e) => {
-        console.error('Failed to scan backlinks:', e);
+        reportError('desk-backlinks-scan', e);
         if (isMounted) setBacklinks([]);
       })
       .finally(() => {

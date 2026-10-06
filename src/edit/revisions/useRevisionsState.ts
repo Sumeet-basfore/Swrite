@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SwriteIpc } from '../../lib/ipc';
+import { reportError } from '../../lib/errors';
 import { RevisionCategory, RevisionNote, RevisionSeverity, RevisionStatus, TextAnchor } from '../../types/ipc';
 
 export function useRevisionsState(currentDocumentPath: string | null) {
@@ -16,7 +17,7 @@ export function useRevisionsState(currentDocumentPath: string | null) {
       const data = await SwriteIpc.revisionsLoad();
       setRevisions(data.revisions || []);
     } catch (e) {
-      console.error('Failed to load revisions:', e);
+      reportError('revisions-load', e, { notify: true });
     } finally {
       setLoading(false);
     }

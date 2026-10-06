@@ -6,6 +6,7 @@ import {
   PublicationProfile,
 } from '../types/ipc';
 import { PreviewViewMode } from './types';
+import { reportError } from '../lib/errors';
 
 interface UsePublishStateProps {
   projectRoot: string;
@@ -40,7 +41,7 @@ export function usePublishState({ projectRoot, projectName }: UsePublishStatePro
       const active = data.custom_profiles.find((p) => p.id === data.active_profile_id) || data.custom_profiles[0] || null;
       setActiveProfile(active);
     } catch (e) {
-      console.error('Failed to load publish profiles:', e);
+      reportError('publish-profiles-load', e, { notify: true });
     } finally {
       setLoadingProfiles(false);
     }
@@ -65,7 +66,7 @@ export function usePublishState({ projectRoot, projectName }: UsePublishStatePro
         setPagination(pagesResult);
         setPreflight(preflightResult);
       } catch (e) {
-        console.error('Pagination/Preflight failed:', e);
+        reportError('publish-paginate-preflight', e, { notify: true });
       } finally {
         setLoadingPagination(false);
         setLoadingPreflight(false);
@@ -94,7 +95,9 @@ export function usePublishState({ projectRoot, projectName }: UsePublishStatePro
       if (target) {
         setActiveProfile(target);
         setCurrentPageIndex(0);
-        SwriteIpc.publishProfileSave(projectRoot, target, true).catch(console.error);
+        SwriteIpc.publishProfileSave(projectRoot, target, true).catch((err) =>
+          reportError('publish-profile-activate', err)
+        );
       }
     },
     [profiles, projectRoot]
@@ -109,7 +112,7 @@ export function usePublishState({ projectRoot, projectName }: UsePublishStatePro
         if (!updated.is_builtin) {
           SwriteIpc.publishProfileSave(projectRoot, updated, true)
             .then((data) => setProfiles(data.custom_profiles))
-            .catch(console.error);
+            .catch((err) => reportError('publish-profile-autosave', err, { notify: true }));
         }
         return updated;
       });
@@ -137,7 +140,7 @@ export function usePublishState({ projectRoot, projectName }: UsePublishStatePro
         setActiveProfile(duplicated);
         return duplicated;
       } catch (e) {
-        console.error('Failed to duplicate profile:', e);
+        reportError('publish-profile-duplicate', e, { notify: true });
       }
     },
     [profiles, projectRoot]
@@ -151,7 +154,7 @@ export function usePublishState({ projectRoot, projectName }: UsePublishStatePro
         const active = data.custom_profiles.find((p) => p.id === data.active_profile_id) || data.custom_profiles[0] || null;
         setActiveProfile(active);
       } catch (e) {
-        console.error('Failed to delete profile:', e);
+        reportError('publish-profile-delete', e, { notify: true });
       }
     },
     [projectRoot]

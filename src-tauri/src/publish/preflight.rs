@@ -3,6 +3,18 @@ use crate::publish::profile::PublicationProfile;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use std::sync::LazyLock;
+
+/// Static patterns: compiled once, and a bad pattern fails at first use
+/// with a message instead of panicking inside every preflight run.
+static IMAGE_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"!\[.*?\]\((.*?)\)").expect("preflight IMAGE pattern is valid"));
+static WIKILINK_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[\[(.*?)\]\]").expect("preflight WIKILINK pattern is valid"));
+static DOUBLE_SCENE_BREAK_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(\*\s*\*\s*\*|✦\s*✦\s*✦|#)\s*\n+\s*(\*\s*\*\s*\*|✦\s*✦\s*✦|#)")
+        .expect("preflight SCENE_BREAK pattern is valid")
+});
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -50,9 +62,9 @@ pub fn run_preflight_check(
     let mut images_checked = 0;
     let mut links_checked = 0;
 
-    let image_regex = Regex::new(r"!\[.*?\]\((.*?)\)").unwrap();
-    let wikilink_regex = Regex::new(r"\[\[(.*?)\]\]").unwrap();
-    let double_scene_break_regex = Regex::new(r"(\*\s*\*\s*\*|✦\s*✦\s*✦|#)\s*\n+\s*(\*\s*\*\s*\*|✦\s*✦\s*✦|#)").unwrap();
+    let image_regex = &*IMAGE_REGEX;
+    let wikilink_regex = &*WIKILINK_REGEX;
+    let double_scene_break_regex = &*DOUBLE_SCENE_BREAK_REGEX;
 
     // 1. Check Front Matter
     if profile.front_matter.include_title_page {

@@ -10,6 +10,7 @@ import { LinkModal, ImageModal, TableModal } from './LinkImageModals';
 import { DocumentMetadataHeader } from './DocumentMetadataHeader';
 import { extractFrontmatter, combineFrontmatter } from '../core/frontmatter';
 import { SaveCoordinator } from '../sync/saveCoordinator';
+import { reportError } from '../../lib/errors';
 import { calculateEditorStats } from '../core/stats';
 import { FormattingCommands } from '../commands/formatting';
 import { TableCommands } from '../commands/tableCommands';
@@ -168,6 +169,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
           await instance.destroy();
         }
       } catch (err) {
+        reportError('editor-init', err, { notify: true });
       }
     }
 

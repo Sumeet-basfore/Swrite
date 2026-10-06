@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SwriteIpc } from '../../lib/ipc';
+import { reportError } from '../../lib/errors';
 import { Comment, CommentReply, TextAnchor } from '../../types/ipc';
 
 interface StaleAnchorInfo {
@@ -63,7 +64,7 @@ export function useCommentsState(currentDocumentPath: string | null) {
 
       setStaleMap(staleCheck);
     } catch (e) {
-      console.error('Failed to load comments:', e);
+      reportError('comments-load', e, { notify: true });
     } finally {
       setLoading(false);
     }

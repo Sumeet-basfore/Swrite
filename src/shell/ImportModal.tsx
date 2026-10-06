@@ -462,9 +462,12 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                             color: 'var(--text-muted)',
                             cursor: 'pointer',
                             padding: '0 4px',
+                            display: 'flex',
+                            alignItems: 'center',
                           }}
+                          aria-label="Remove path"
                         >
-                          ✕
+                          <X size={13} />
                         </button>
                       </div>
                     ))}

@@ -3,6 +3,7 @@ import { useMoodboardState } from './useMoodboardState';
 import { MoodboardToolbar } from './MoodboardToolbar';
 import { MoodboardItemRenderer } from './MoodboardItemRenderer';
 import { DiscoveredFile } from '../../types/ipc';
+import { reportError } from '../../lib/errors';
 import { Image as ImageIcon, Upload } from 'lucide-react';
 
 export interface MoodboardCanvasProps {
@@ -317,7 +318,7 @@ export const MoodboardCanvas: React.FC<MoodboardCanvasProps> = ({
                       setImagePickerOpen(false);
                     }
                   } catch (e) {
-                    console.error(e);
+                    reportError('moodboard-add-image', e, { notify: true });
                   }
                 }}
               >

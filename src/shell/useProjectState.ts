@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SwriteIpc } from '../lib/ipc';
+import { reportError } from '../lib/errors';
 import {
   ProjectSummary,
   ProjectFilesystemView,
@@ -341,6 +342,7 @@ export function useProjectState(
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         log(`Initialization error: ${msg}`);
+        reportError('project-init', err, { notify: true });
       } finally {
         if (isMounted) setIsLoading(false);
       }

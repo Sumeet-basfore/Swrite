@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SwriteIpc } from '../lib/ipc';
+import { reportError } from '../lib/errors';
 import { PluginManager } from './PluginManager';
 import { ActivePluginInstance, EditorExtensionApi, PluginCommand, PluginPanel } from './types';
 
@@ -33,7 +34,7 @@ export function usePlugins({ projectRoot, editorApi }: UsePluginsProps) {
       setCommands(managerRef.current.getAllCommands());
       setPanels(managerRef.current.getAllPanels());
     } catch (e) {
-      console.error('Failed to discover plugins:', e);
+      reportError('plugins-discover', e);
     } finally {
       setLoading(false);
     }
@@ -53,7 +54,7 @@ export function usePlugins({ projectRoot, editorApi }: UsePluginsProps) {
         await SwriteIpc.pluginsSetEnabled(projectRoot, pluginId, enabled);
         await refreshPlugins();
       } catch (e) {
-        console.error(`Failed to toggle plugin ${pluginId}:`, e);
+        reportError('plugins-toggle', e, { notify: true });
       }
     },
     [projectRoot, refreshPlugins]

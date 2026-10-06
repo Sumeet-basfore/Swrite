@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { reportError } from '../../lib/errors';
 import { EditorView } from '@milkdown/prose/view';
 import { Search, ChevronUp, ChevronDown, Replace, X } from 'lucide-react';
 
@@ -109,7 +110,7 @@ export const FindReplaceBar: React.FC<FindReplaceBarProps> = ({
       const updated = text.replace(regex, replaceTerm);
       onReplaceContent(updated);
     } catch (e) {
-      console.error('Replace All failed:', e);
+      reportError('editor-replace-all', e, { notify: true });
     }
   };
 

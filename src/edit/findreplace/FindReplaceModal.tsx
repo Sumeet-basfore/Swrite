@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SwriteIpc } from '../../lib/ipc';
+import { reportError } from '../../lib/errors';
 import { DiscoveredFile } from '../../types/ipc';
 import { FindReplaceMatch, FindReplaceOptions } from '../types';
 
@@ -106,7 +107,7 @@ export const FindReplaceModal: React.FC<FindReplaceModalProps> = ({
       setCurrentMatchIdx(found.length > 0 ? 0 : -1);
       setReplaceCount(null);
     } catch (e) {
-      console.error('Find/replace scan error:', e);
+      reportError('find-replace-scan', e);
     } finally {
       setSearching(false);
     }
@@ -153,7 +154,7 @@ export const FindReplaceModal: React.FC<FindReplaceModalProps> = ({
       // Re-scan
       await performSearch();
     } catch (e) {
-      console.error('Failed to replace next:', e);
+      reportError('find-replace-one', e, { notify: true });
     }
   };
 
@@ -188,7 +189,7 @@ export const FindReplaceModal: React.FC<FindReplaceModalProps> = ({
       setReplaceCount(count);
       await performSearch();
     } catch (e) {
-      console.error('Failed to replace all:', e);
+      reportError('find-replace-all', e, { notify: true });
     }
   };
 
