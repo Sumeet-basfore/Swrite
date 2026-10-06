@@ -294,15 +294,21 @@ export const ProjectShell: React.FC = () => {
               <div className="empty-message-box">
                 <h2>{activeProject?.name || 'Swrite Studio'}</h2>
                 <p>Select a document from the sidebar to begin writing, or create a new chapter.</p>
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '16px' }}>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '16px' }}>
                   <button onClick={createNewChapter} className="empty-create-btn">
                     + Create First Chapter
                   </button>
                   <button onClick={() => setStudioMode('plan')} className="empty-create-btn" style={{ background: 'var(--bg-desk)', color: 'var(--text-ink)', border: '1px solid var(--border-quiet)' }}>
-                    Open Planning Studio
+                    Planning Studio
                   </button>
                   <button onClick={() => setStudioMode('desk')} className="empty-create-btn" style={{ background: 'var(--bg-desk)', color: 'var(--text-ink)', border: '1px solid var(--border-quiet)' }}>
-                    Open Creative Desk
+                    Creative Desk
+                  </button>
+                  <button onClick={() => setStudioMode('edit')} className="empty-create-btn" style={{ background: 'var(--bg-desk)', color: 'var(--text-ink)', border: '1px solid var(--border-quiet)' }}>
+                    Edit Studio
+                  </button>
+                  <button onClick={() => setStudioMode('publish')} className="empty-create-btn" style={{ background: 'var(--bg-desk)', color: 'var(--text-ink)', border: '1px solid var(--border-quiet)' }}>
+                    Publish Studio
                   </button>
                 </div>
               </div>
