@@ -7,6 +7,7 @@ pub mod filesystem;
 pub mod history;
 pub mod planning;
 pub mod project;
+pub mod publish;
 pub mod recovery;
 pub mod search;
 pub mod state;
@@ -85,6 +86,12 @@ pub fn run() {
             commands::watch_start,
             commands::watch_stop,
             commands::reconciliation_inspect,
+            commands::publish_profiles_load,
+            commands::publish_profile_save,
+            commands::publish_profile_delete,
+            commands::publish_preflight_run,
+            commands::publish_paginate,
+            commands::publish_export,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]

@@ -13,6 +13,7 @@ import {
   Layout,
   Columns,
   CheckSquare,
+  Printer,
 } from 'lucide-react';
 
 export interface ShellHeaderProps {
@@ -20,8 +21,8 @@ export interface ShellHeaderProps {
   activePath: string | null;
   sidebarCollapsed: boolean;
   focusMode: boolean;
-  studioMode: 'write' | 'plan' | 'desk' | 'edit';
-  onChangeStudioMode: (mode: 'write' | 'plan' | 'desk' | 'edit') => void;
+  studioMode: 'write' | 'plan' | 'desk' | 'edit' | 'publish';
+  onChangeStudioMode: (mode: 'write' | 'plan' | 'desk' | 'edit' | 'publish') => void;
   isSplitOpen?: boolean;
   onToggleSplit?: () => void;
   onToggleSidebar: () => void;
@@ -123,6 +124,14 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
           >
             <CheckSquare size={13} />
             <span>Edit</span>
+          </button>
+          <button
+            className={`mode-tab-btn ${studioMode === 'publish' ? 'active' : ''}`}
+            onClick={() => onChangeStudioMode('publish')}
+            title="Publish Studio (Ctrl+5)"
+          >
+            <Printer size={13} />
+            <span>Publish</span>
           </button>
         </div>
       </div>

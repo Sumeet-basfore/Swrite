@@ -11,6 +11,7 @@ import { EditorCanvas } from '../editor';
 import { PlanningStudio } from '../planning';
 import { DeskStudio, SplitDeskContainer } from '../desk';
 import { EditStudio } from '../edit';
+import { PublishStudio } from '../publish';
 import { ContextMenuState, TreeNode } from './types';
 import { SwriteIpc } from '../lib/ipc';
 import './shell.css';
@@ -44,7 +45,7 @@ export const ProjectShell: React.FC = () => {
     openSearchResult,
   } = useProjectState();
 
-  const [studioMode, setStudioMode] = useState<'write' | 'plan' | 'desk' | 'edit'>('write');
+  const [studioMode, setStudioMode] = useState<'write' | 'plan' | 'desk' | 'edit' | 'publish'>('write');
   const [splitDocument, setSplitDocument] = useState<{ path: string; content: string } | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [showDevDrawer, setShowDevDrawer] = useState(false);
@@ -103,6 +104,13 @@ export const ProjectShell: React.FC = () => {
       if (isMod && !e.shiftKey && key === '4') {
         e.preventDefault();
         setStudioMode('edit');
+        return;
+      }
+
+      // Mod+5: Publish Studio
+      if (isMod && !e.shiftKey && key === '5') {
+        e.preventDefault();
+        setStudioMode('publish');
         return;
       }
 
@@ -251,6 +259,15 @@ export const ProjectShell: React.FC = () => {
                 openDocument(path);
               }}
               onSelectDocument={(path) => {
+                openDocument(path);
+              }}
+            />
+          ) : studioMode === 'publish' ? (
+            <PublishStudio
+              projectRoot={activeProject?.root_path || ''}
+              projectName={activeProject?.name || 'Manuscript'}
+              onNavigateToDocument={(path) => {
+                setStudioMode('write');
                 openDocument(path);
               }}
             />

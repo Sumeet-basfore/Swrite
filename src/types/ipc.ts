@@ -313,3 +313,198 @@ export interface DocumentDiffResult {
   modifications_count: number;
 }
 
+// Milestone 8 — Publish Studio Types
+
+export type OutputFormat = 'pdf' | 'docx' | 'epub' | 'markdown' | 'txt';
+
+export interface PageSizeConfig {
+  width_in: number;
+  height_in: number;
+  preset: string;
+}
+
+export interface MarginsConfig {
+  top_in: number;
+  bottom_in: number;
+  inside_in: number;
+  outside_in: number;
+}
+
+export interface TypographyConfig {
+  body_font: string;
+  heading_font: string;
+  font_size_pt: number;
+  line_height: number;
+  paragraph_indent_in: number;
+  paragraph_spacing_pt: number;
+  text_align: string;
+}
+
+export interface ChapterStyleConfig {
+  numbering_style: string;
+  title_case: string;
+  alignment: string;
+  spacing_top_pt: number;
+  drop_cap: boolean;
+  ornament?: string | null;
+}
+
+export interface SceneBreakConfig {
+  style: string;
+  custom_text?: string | null;
+}
+
+export interface HeadersFootersConfig {
+  show_header: boolean;
+  show_footer: boolean;
+  left_header: string;
+  center_header: string;
+  right_header: string;
+  left_footer: string;
+  center_footer: string;
+  right_footer: string;
+  suppress_first_page: boolean;
+  odd_even_different: boolean;
+}
+
+export interface PageNumberingConfig {
+  style: string;
+  start_at: number;
+  position: string;
+}
+
+export interface FrontMatterConfig {
+  include_title_page: boolean;
+  title: string;
+  subtitle?: string | null;
+  author: string;
+  copyright?: string | null;
+  publisher?: string | null;
+  edition?: string | null;
+  dedication?: string | null;
+  epigraph?: string | null;
+}
+
+export interface BackMatterConfig {
+  include_acknowledgements: boolean;
+  acknowledgements_text?: string | null;
+  include_about_author: boolean;
+  about_author_text?: string | null;
+}
+
+export interface PublicationProfile {
+  id: string;
+  name: string;
+  description: string;
+  is_builtin: boolean;
+  format: OutputFormat;
+  page_size: PageSizeConfig;
+  margins: MarginsConfig;
+  typography: TypographyConfig;
+  chapter_style: ChapterStyleConfig;
+  scene_break_style: SceneBreakConfig;
+  headers_footers: HeadersFootersConfig;
+  page_numbering: PageNumberingConfig;
+  front_matter: FrontMatterConfig;
+  back_matter: BackMatterConfig;
+}
+
+export interface PublishProfilesData {
+  active_profile_id: string;
+  custom_profiles: PublicationProfile[];
+}
+
+export type PreflightSeverity = 'info' | 'warning' | 'blocking';
+
+export interface PreflightIssue {
+  id: string;
+  severity: PreflightSeverity;
+  category: string;
+  message: string;
+  document_path?: string | null;
+  line_number?: number | null;
+  suggestion?: string | null;
+}
+
+export interface PreflightCheckResult {
+  is_valid: boolean;
+  chapters_checked: number;
+  images_checked: number;
+  links_checked: number;
+  issues: PreflightIssue[];
+  blocking_count: number;
+  warning_count: number;
+  info_count: number;
+}
+
+export type RenderedBlock =
+  | {
+      type: 'title_page';
+      title: string;
+      subtitle?: string | null;
+      author: string;
+      edition?: string | null;
+      publisher?: string | null;
+    }
+  | {
+      type: 'copyright_page';
+      text: string;
+    }
+  | {
+      type: 'dedication_page';
+      text: string;
+    }
+  | {
+      type: 'epigraph_page';
+      text: string;
+    }
+  | {
+      type: 'chapter_title';
+      number_label?: string | null;
+      title: string;
+      ornament?: string | null;
+    }
+  | {
+      type: 'paragraph';
+      text: string;
+      is_first_in_chapter: boolean;
+    }
+  | {
+      type: 'scene_break';
+      symbol: string;
+    }
+  | {
+      type: 'image';
+      src: string;
+      alt: string;
+      caption?: string | null;
+    };
+
+export interface RenderedPage {
+  page_number: number;
+  display_number: string;
+  is_front_matter: boolean;
+  header_left: string;
+  header_center: string;
+  header_right: string;
+  footer_left: string;
+  footer_center: string;
+  footer_right: string;
+  blocks: RenderedBlock[];
+  width_pt: number;
+  height_pt: number;
+  margin_top_pt: number;
+  margin_bottom_pt: number;
+  margin_left_pt: number;
+  margin_right_pt: number;
+}
+
+export interface PaginationResult {
+  total_pages: number;
+  front_matter_pages: number;
+  body_pages: number;
+  pages: RenderedPage[];
+  word_count: number;
+}
+
+

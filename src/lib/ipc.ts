@@ -22,6 +22,10 @@ import {
   ProjectDictionary,
   ProofreadingFinding,
   DocumentDiffResult,
+  PublicationProfile,
+  PublishProfilesData,
+  PreflightCheckResult,
+  PaginationResult,
 } from '../types/ipc';
 
 export const SwriteIpc = {
@@ -237,5 +241,25 @@ export const SwriteIpc = {
   // Milestone 7 — Proofreading
   proofreadText: (text: string) =>
     invoke<ProofreadingFinding[]>('proofread_text', { text }),
+
+  // Milestone 8 — Publish Studio
+  publishProfilesLoad: (projectRoot: string, projectName: string) =>
+    invoke<PublishProfilesData>('publish_profiles_load', { projectRoot, projectName }),
+
+  publishProfileSave: (projectRoot: string, profile: PublicationProfile, setActive: boolean) =>
+    invoke<PublishProfilesData>('publish_profile_save', { projectRoot, profile, setActive }),
+
+  publishProfileDelete: (projectRoot: string, profileId: string) =>
+    invoke<PublishProfilesData>('publish_profile_delete', { projectRoot, profileId }),
+
+  publishPreflightRun: (projectRoot: string, profile: PublicationProfile) =>
+    invoke<PreflightCheckResult>('publish_preflight_run', { projectRoot, profile }),
+
+  publishPaginate: (projectRoot: string, profile: PublicationProfile) =>
+    invoke<PaginationResult>('publish_paginate', { projectRoot, profile }),
+
+  publishExport: (projectRoot: string, profile: PublicationProfile, targetAbsolutePath: string) =>
+    invoke<string>('publish_export', { projectRoot, profile, targetAbsolutePath }),
 };
+
 
