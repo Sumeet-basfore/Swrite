@@ -12,12 +12,19 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
+  /* Canonical Manuscript Geometry */
+  --manuscript-page-width: 820px;
+  --manuscript-page-padding-y: 64px;
+  --manuscript-page-padding-x: 56px;
+  --editor-content-width: calc(var(--manuscript-page-width) - (2 * var(--manuscript-page-padding-x)));
+  --toolbar-height: 40px;
+
   /* Dynamic Typography Defaults */
   --editor-font-family: var(--font-serif);
   --editor-heading-family: var(--font-sans);
   --editor-font-size: 18px;
   --editor-line-height: 1.85;
-  --editor-max-width: 720px;
+  --editor-max-width: var(--manuscript-page-width);
   --editor-paragraph-margin: 1.5em;
   --editor-text-indent: 0px;
 }
@@ -271,12 +278,42 @@
   background-color: var(--bg-desk);
 }
 
+/* Workspace Toolbar Zone (Docked above scroll viewport) */
+.swrite-editor-toolbar-zone {
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 6px 16px;
+  background-color: var(--bg-page);
+  border-bottom: 1px solid var(--border-quiet);
+  z-index: 30;
+  user-select: none;
+  min-height: var(--toolbar-height, 40px);
+  box-sizing: border-box;
+}
+
+/* Find & Replace Header Zone */
+.swrite-editor-find-zone {
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 6px 16px;
+  background-color: var(--bg-page);
+  border-bottom: 1px solid var(--border-quiet);
+  z-index: 35;
+  box-sizing: border-box;
+}
+
 /* Manuscript Scroll Area */
 .swrite-scroll-viewport {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 40px 20px 140px 20px;
+  padding: 48px 24px 140px 24px;
   display: flex;
   justify-content: center;
   box-sizing: border-box;
@@ -288,37 +325,39 @@
 .swrite-manuscript-page {
   box-sizing: border-box;
   width: 100%;
-  max-width: var(--editor-max-width, 720px);
+  max-width: var(--manuscript-page-width, 820px);
   min-width: 0;
   background-color: var(--bg-page);
-  min-height: 85vh;
-  padding: 64px 72px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-  border-radius: 4px;
+  min-height: calc(100vh - 180px);
+  padding: var(--manuscript-page-padding-y, 64px) var(--manuscript-page-padding-x, 56px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  border-radius: 6px;
   border: 1px solid var(--border-quiet);
-  transition: all 0.25s ease;
+  transition: max-width 0.2s ease, padding 0.2s ease;
   overflow-wrap: anywhere;
+  margin: 0 auto;
 }
 
 .focus-mode .swrite-manuscript-page {
   box-shadow: none;
   border: none;
-  padding-top: 80px;
+  padding-top: 64px;
 }
 
 /* Reading Mode Page */
 .swrite-reading-page {
   box-sizing: border-box;
   width: 100%;
-  max-width: var(--editor-max-width, 720px);
+  max-width: var(--manuscript-page-width, 820px);
   min-width: 0;
   background-color: var(--bg-page);
-  min-height: 85vh;
-  padding: 56px 72px;
+  min-height: calc(100vh - 180px);
+  padding: var(--manuscript-page-padding-y, 64px) var(--manuscript-page-padding-x, 56px);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
   border-radius: 6px;
   border: 1px solid var(--border-quiet);
   overflow-wrap: anywhere;
+  margin: 0 auto;
 }
 
 .reading-page-header {
@@ -795,19 +834,14 @@
 
 /* Formatting Bar */
 .swrite-formatting-bar {
-  position: sticky;
-  top: 12px;
-  margin: 0 auto;
-  z-index: 40;
   display: flex;
   align-items: center;
   gap: 4px;
-  background-color: var(--bg-page);
-  border: 1px solid var(--border-quiet);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-  padding: 4px 8px;
-  border-radius: 8px;
-  backdrop-filter: blur(8px);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
 }
 
 .btn-group {
@@ -844,18 +878,15 @@
 
 /* Find & Replace Bar */
 .swrite-find-replace-bar {
-  position: sticky;
-  top: 12px;
-  margin: 0 auto;
-  z-index: 45;
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: var(--bg-page);
+  background-color: var(--bg-desk);
   border: 1px solid var(--border-quiet);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-  padding: 6px 12px;
-  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin: 0;
 }
 
 .find-inputs-group {

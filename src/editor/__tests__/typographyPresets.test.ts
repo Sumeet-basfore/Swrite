@@ -20,7 +20,8 @@ describe('Typography Presets', () => {
     const vars = getPresetStyleVariables(TYPOGRAPHY_PRESETS.literary);
     expect(vars['--editor-font-size']).toBe('18px');
     expect(vars['--editor-line-height']).toBe('1.85');
-    expect(vars['--editor-max-width']).toBe('720px');
+    expect(vars['--editor-max-width']).toBe('820px');
+    expect(vars['--manuscript-page-width']).toBe('820px');
     expect(vars['--editor-paragraph-margin']).toBe('1.5em');
     expect(vars['--editor-text-indent']).toBe('0');
   });

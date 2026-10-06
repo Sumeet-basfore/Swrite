@@ -53,19 +53,23 @@ describe('Manuscript Canvas Containment & Metadata Header', () => {
 
   it('guarantees typography preset CSS variables establish manuscript measure', () => {
     const literaryVars = getPresetStyleVariables(TYPOGRAPHY_PRESETS.literary);
-    expect(literaryVars['--editor-max-width']).toBe('720px');
+    expect(literaryVars['--editor-max-width']).toBe('820px');
+    expect(literaryVars['--manuscript-page-width']).toBe('820px');
     expect(literaryVars['--editor-font-size']).toBe('18px');
 
     const classicVars = getPresetStyleVariables(TYPOGRAPHY_PRESETS.classic);
-    expect(classicVars['--editor-max-width']).toBe('700px');
+    expect(classicVars['--editor-max-width']).toBe('800px');
+    expect(classicVars['--manuscript-page-width']).toBe('800px');
     expect(classicVars['--editor-text-indent']).toBe('1.5em');
 
     const compactVars = getPresetStyleVariables(TYPOGRAPHY_PRESETS.compact);
-    expect(compactVars['--editor-max-width']).toBe('800px');
+    expect(compactVars['--editor-max-width']).toBe('840px');
+    expect(compactVars['--manuscript-page-width']).toBe('840px');
     expect(compactVars['--editor-font-size']).toBe('15px');
 
     const typewriterVars = getPresetStyleVariables(TYPOGRAPHY_PRESETS.typewriter);
-    expect(typewriterVars['--editor-max-width']).toBe('680px');
+    expect(typewriterVars['--editor-max-width']).toBe('800px');
+    expect(typewriterVars['--manuscript-page-width']).toBe('800px');
     expect(typewriterVars['--editor-font-family']).toContain('ui-monospace');
   });
 });

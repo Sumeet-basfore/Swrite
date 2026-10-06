@@ -253,32 +253,36 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       className={`swrite-editor-container ${focusMode ? 'focus-mode' : ''} ${readingMode ? 'reading-mode' : ''}`}
       style={presetVariables as React.CSSProperties}
     >
-      {/* Floating Formatting Toolbar (only in Rich mode and not in focus/reading mode) */}
+      {/* Dedicated Workspace Formatting Toolbar (only in Rich mode and not in focus/reading mode) */}
       {mode === 'rich' && !focusMode && !readingMode && (
-        <FormattingBar
-          getView={() => editorInstanceRef.current?.getView() || null}
-          onOpenLinkModal={() => setLinkModalOpen(true)}
-          onOpenImageModal={() => setImageModalOpen(true)}
-          onOpenTableModal={() => setTableModalOpen(true)}
-          onOpenCommentModal={() => {
-            const view = editorInstanceRef.current?.getView();
-            if (view) FormattingCommands.insertBookmark(view, 'Comment annotation');
-          }}
-          onAddBookmark={() => {
-            const view = editorInstanceRef.current?.getView();
-            if (view) FormattingCommands.insertBookmark(view, 'Bookmark');
-          }}
-        />
+        <div className="swrite-editor-toolbar-zone">
+          <FormattingBar
+            getView={() => editorInstanceRef.current?.getView() || null}
+            onOpenLinkModal={() => setLinkModalOpen(true)}
+            onOpenImageModal={() => setImageModalOpen(true)}
+            onOpenTableModal={() => setTableModalOpen(true)}
+            onOpenCommentModal={() => {
+              const view = editorInstanceRef.current?.getView();
+              if (view) FormattingCommands.insertBookmark(view, 'Comment annotation');
+            }}
+            onAddBookmark={() => {
+              const view = editorInstanceRef.current?.getView();
+              if (view) FormattingCommands.insertBookmark(view, 'Bookmark');
+            }}
+          />
+        </div>
       )}
 
-      {/* Embedded Find & Replace Bar */}
+      {/* Embedded Find & Replace Header Zone */}
       {showFindReplace && (
-        <FindReplaceBar
-          getView={() => editorInstanceRef.current?.getView() || null}
-          getRawContent={() => fullMarkdownRef.current}
-          onReplaceContent={handleReplaceContent}
-          onClose={() => setShowFindReplace(false)}
-        />
+        <div className="swrite-editor-find-zone">
+          <FindReplaceBar
+            getView={() => editorInstanceRef.current?.getView() || null}
+            getRawContent={() => fullMarkdownRef.current}
+            onReplaceContent={handleReplaceContent}
+            onClose={() => setShowFindReplace(false)}
+          />
+        </div>
       )}
 
       {/* Main Canvas Viewport */}
